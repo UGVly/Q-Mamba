@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from model.mamba_minimal import Mamba
+# from model.mamba_minimal import Mamba
 
 class q_head(nn.Module):
     def __init__(self, cfg):
@@ -30,9 +30,9 @@ class q_head(nn.Module):
 
         return self.get_q_values(embed)
 
-class Q_Mamba(nn.module):
+class QMamba(nn.Module):
     def __init__(self, cfg):
-        super(Q_Mamba, self).__init__()
+        super(QMamba, self).__init__()
         self.cfg = cfg
         self.device = torch.device(cfg.device)
         

@@ -1,5 +1,7 @@
-import torch
+# -*- coding: utf-8 -*-?
 
+import torch
+import pprint
 from options import get_options
 
 from model.q_mamba import QMamba
@@ -24,6 +26,11 @@ def run(cfg):
     else:
         raise ValueError('Model not found') 
         
+    
+    # Pretty print the run args
+    pprint.pprint(vars(cfg))
+    
+    
     
     
     if cfg.mode == 'train':

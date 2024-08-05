@@ -14,7 +14,7 @@ from beartype.typing import Union, List, Optional, Callable, Tuple, Dict, Any
 from einops import pack, unpack, repeat, reduce, rearrange
 from einops.layers.torch import Rearrange, Reduce
 
-from q_transformer.attend import Attend
+from model.attend import Attend
 
 from classifier_free_guidance_pytorch import (
     TextConditioner,

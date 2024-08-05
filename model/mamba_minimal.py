@@ -1,3 +1,5 @@
+# coding=utf-8
+
 """Simple, minimal implementation of Mamba in one file of PyTorch.
 
 Suggest reading the following before/while reading the code:
