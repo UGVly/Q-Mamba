@@ -14,14 +14,14 @@ from beartype.typing import Union, List, Optional, Callable, Tuple, Dict, Any
 from einops import pack, unpack, repeat, reduce, rearrange
 from einops.layers.torch import Rearrange, Reduce
 
-from model.attend import Attend
+from model.Attend import Attend
 
-from classifier_free_guidance_pytorch import (
-    TextConditioner,
-    AttentionTextConditioner,
-    NullConditioner,
-    classifier_free_guidance
-)
+# from classifier_free_guidance_pytorch import (
+#     TextConditioner,
+#     AttentionTextConditioner,
+#     NullConditioner,
+#     classifier_free_guidance
+# )
 
 # helpers
 
@@ -65,36 +65,6 @@ class RMSNorm(Module):
     def forward(self, x):
         return l2norm(x) * self.gamma * self.scale
 
-class ChanRMSNorm(Module):
-    def __init__(self, dim, affine = True):
-        super().__init__()
-        self.scale = dim ** 0.5
-        self.gamma = nn.Parameter(torch.ones(dim, 1, 1)) if affine else 1.
-
-    def forward(self, x):
-        return l2norm(x, dim = 1) * self.gamma * self.scale
-
-# sinusoidal positions
-
-def posemb_sincos_1d(seq, dim, temperature = 10000, device = None, dtype = torch.float32):
-    n = torch.arange(seq, device = device)
-    omega = torch.arange(dim // 2, device = device) / (dim // 2 - 1)
-    omega = 1. / (temperature ** omega)
-
-    n = n[:, None] * omega[None, :]
-    pos_emb = torch.cat((n.sin(), n.cos()), dim = 1)
-    return pos_emb.type(dtype)
-
-# helper classes
-
-class Residual(Module):
-    @beartype
-    def __init__(self, fn: Module):
-        super().__init__()
-        self.fn = fn
-
-    def forward(self, x, **kwargs):
-        return self.fn(x, **kwargs) + x
 
 class FeedForward(Module):
     def __init__(
@@ -325,44 +295,6 @@ class Transformer(Module):
             return out
 
         return out, new_caches
-
-# token learner module
-
-class TokenLearner(Module):
-    """
-    https://arxiv.org/abs/2106.11297
-    using the 1.1 version with the MLP (2 dense layers with gelu) for generating attention map
-    """
-
-    def __init__(
-        self,
-        *,
-        dim,
-        ff_mult = 2,
-        num_output_tokens = 8,
-        num_layers = 2
-    ):
-        super().__init__()
-        inner_dim = dim * ff_mult * num_output_tokens
-
-        self.num_output_tokens = num_output_tokens
-        self.net = nn.Sequential(
-            nn.Conv2d(dim * num_output_tokens, inner_dim, 1, groups = num_output_tokens),
-            nn.GELU(),
-            nn.Conv2d(inner_dim, num_output_tokens, 1, groups = num_output_tokens),
-        )
-
-    def forward(self, x):
-        x, ps = pack_one(x, '* c h w')
-        x = repeat(x, 'b c h w -> b (g c) h w', g = self.num_output_tokens)
-        attn = self.net(x)
-
-        attn = rearrange(attn, 'b g h w -> b 1 g h w')
-        x = rearrange(x, 'b (g c) h w -> b c g h w', g = self.num_output_tokens)
-
-        x = reduce(x * attn, 'b c g h w -> b c g', 'mean')
-        x = unpack_one(x, ps, '* c n')
-        return x
 
 # Dueling heads for Q value
 
@@ -668,57 +600,22 @@ class QTransformer(Module):
         self.is_single_action = num_actions == 1
         self.action_bins = action_bins
 
-        # conditioning
-
-        self.condition_on_text = condition_on_text
-
-        if condition_on_text:
-            conditioner_klass = AttentionTextConditioner if use_attn_conditioner else TextConditioner
-
-            self.conditioner = conditioner_klass(
-                hidden_dims = (*tuple(vit.cond_hidden_dims), *((attend_dim,) * depth * 2)),
-                hiddens_channel_first = (*((True,) * self.num_vit_stages), *((False,) * depth * 2)),
-                cond_drop_prob = cond_drop_prob,
-                **conditioner_kwargs
-            )
-        else:
-            self.conditioner = NullConditioner(hidden_dims = tuple())
-
-        self.token_learner = TokenLearner(
-            dim = vit.embed_dim,
-            ff_mult = token_learner_ff_mult,
-            num_output_tokens = token_learner_num_output_tokens,
-            num_layers = token_learner_num_layers
-        )
-
-        self.num_learned_tokens = token_learner_num_output_tokens
-
-        self.transformer_depth = depth
-
-        self.transformer = Transformer(
-            dim = attend_dim,
-            dim_head = dim_head,
-            heads = heads,
-            depth = depth,
-            flash_attn = flash_attn,
-            adaptive_ln = condition_on_text,
-            final_norm = True
-        )
 
         self.cond_drop_prob = cond_drop_prob
 
         # Q head
+        
 
         if self.is_single_action:
             self.q_head = QHeadSingleAction(
-                attend_dim,
+                dim = dim_head,
                 num_learned_tokens = self.num_learned_tokens,
                 action_bins = action_bins,
                 dueling = dueling
             )
         else:
             self.q_head = QHeadMultipleActions(
-                attend_dim,
+                dim = dim_head,
                 action_bins = action_bins,
                 dueling = dueling,
                 weight_tie_action_bin_embed = weight_tie_action_bin_embed,
@@ -732,9 +629,9 @@ class QTransformer(Module):
     def get_random_actions(self, batch_size = 1):
         return self.q_head.get_random_actions(batch_size)
 
-    @beartype
-    def embed_texts(self, texts: List[str]):
-        return self.conditioner.embed_texts(texts)
+    # @beartype
+    # def embed_texts(self, texts: List[str]):
+    #     return self.conditioner.embed_texts(texts)
 
     @torch.no_grad()
     def get_optimal_actions(
@@ -762,7 +659,7 @@ class QTransformer(Module):
 
         return self.get_optimal_actions(video, *args, **kwargs)
 
-    @classifier_free_guidance
+    # @classifier_free_guidance
     def forward(
         self,
         feats: Tensor,
