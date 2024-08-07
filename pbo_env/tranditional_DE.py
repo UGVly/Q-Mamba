@@ -21,34 +21,6 @@ from population.population import Population
 import gym
 from gym import spaces
 
-rand_seed=42
-reward_threshold=1e-7
-
-
-
-pprint.pprint(vars(Population))
-# pprint.pprint(Population)
-
-# class DE_Environment(BaseEnvironment):
-#      def init(self) -> Tuple[
-#         Optional[str],
-#         TensorType[float]
-#     ]:
-#         return 'please clean the kitchen', torch.randn(self.state_shape, device = self.device)
-
-#     def forward(self, actions) -> Tuple[
-#         TensorType[(), float],
-#         TensorType[float],
-#         TensorType[(), bool]
-#     ]:
-#         rewards = torch.randn((), device = self.device)
-#         next_states = torch.randn(self.state_shape, device = self.device)
-#         done = torch.zeros((), device = self.device, dtype = torch.bool)
-
-#         return rewards, next_states, done
-    
-    
-# inherit gym.Env for the convenience of parallelism
 class DE(gym.Env):
     def __init__(self,dim,ps,max_x,min_x,max_fes):
         super(DE,self).__init__()
@@ -67,7 +39,18 @@ class DE(gym.Env):
         self.observation_space=spaces.Box(low=-np.inf,high=np.inf,shape=(self.ps,9))
         self.name='DE'
 
+    def current2best(self, position, F1,F2):
+        NP = position.shape[0]
+        ps = self.ps
+        r1 = np.random.randint(ps, size=NP)
+        r2 = np.random.randint(ps,size=NP)
 
+        x1 = self.population.current_position[r1]
+        x2 = self.population.current_position[r2]
+        trail = position + F1 * (self.population.gbest_position - position) + F2 * (x1 - x2)
+
+        return trail
+    
     def mutate(self, position, Fs):
         NP = position.shape[0]
         ps = self.ps
@@ -87,14 +70,13 @@ class DE(gym.Env):
         ps = self.ps
         r = np.random.rand(NP, self.dim)
         
-        if position==self.population.gbest_position:
+        if position.all()==self.population.gbest_position.all():
             return position
         
         trails = np.where(r<=Cr,position,self.population.gbest_position)
         
         while np.all(trails==self.population.gbest_position):
-            # 选择一个原位置的随机个体
-            r1 = np.random.randint(ps)
+            r1 = np.random.randint(NP)
             trails[r1]=position[r1]
         
         return trails
@@ -115,9 +97,9 @@ class DE(gym.Env):
         
         '''
             action is a dict like  
-            {"F":0.5,"Cr":0.9}
-            or {"F":0.5,"Cr":0.9,"fes":1000}
-            or {"F":0.5,"Cr":0.9,"skip_step":10}
+            {'problem',"F":0.5,"Cr":0.9}
+            or {'problem',"F":0.5,"Cr":0.9,"fes":1000}
+            or {'problem',"F":0.5,"Cr":0.9,"skip_step":10}
         '''
         
         F = action['F']
@@ -146,7 +128,7 @@ class DE(gym.Env):
             
             trails = self.crossover(old_pos, Cr)
             
-            # trails=self.current2best(old_pos,0.9,0.9)
+            trails=self.current2best(old_pos,0.9,0.9)
 
             # trails=old_pos+F1*(rand_par_position-old_pos)+F2*(gbest_pos-old_pos)
             trails=np.clip(trails,self.min_x,self.max_x)
@@ -166,7 +148,8 @@ class DE(gym.Env):
                 
         return self.population,0,self.population.cur_fes>=self.max_fes,{}
     
-    
+
+
     
     # def rand1(self, position, Fs):
     #     NP = position.shape[0]

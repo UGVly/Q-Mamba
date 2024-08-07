@@ -15,6 +15,22 @@ def get_options(args=None):
     # model
     parser.add_argument('--model', type = str, default = 'q-transformer', choices = ["q-mamba", "q-transformer", "q-lstm"], help = 'model name')
     
+    # environment settings
+    parser.add_argument('--population_size', type = int, default= 100,help='population size use in backbone algorithm')  # recommend 100
+    
+    parser.add_argument('--dim', type=int, default=10,help='dimension of the sovling problems')
+    parser.add_argument('--max_x',type=float,default=100,help='the upper bound of the searching range')
+    parser.add_argument('--min_x',type=float,default=-100,help='the lower bound of the searching range')
+    parser.add_argument('--boarder_method',default='clipping',choices=['clipping','random','periodic','reflect'], help='boarding methods')
+    parser.add_argument('--skip_step',default=5,type=int,help='apply the update function every skip_step step of updating')
+    parser.add_argument('--max_fes',type=int,default=50000,help='max function evaluation times')
+
+    parser.add_argument('--reward_func',default='gap_near',choices=['w','gap_near'],help='several dist functions for comparison')
+    parser.add_argument('--b_reward_func', default='5', choices=['1','2','3','4','2div2','5','6','7','8','9','10'], help='different baseline reward selections')
+    
+    parser.add_argument('--fea_mode',default='full',choices=['full','no_fit','no_dis','no_opt','only_dis','only_opt','only_fit','xy'], help='feature selection')
+    parser.add_argument('--fea_dim',type=int,default=9,help='dim of feature encoding( excluding those historical information)')
+    
     # save
     parser.add_argument('--checkpoint_folder', type = str, default = './checkpoints', help = 'folder to save checkpoints')
     parser.add_argument('--checkpoint_every', type = int, default = 1000, help = 'save checkpoint every n steps')
