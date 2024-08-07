@@ -67,82 +67,6 @@ class DE(gym.Env):
         self.observation_space=spaces.Box(low=-np.inf,high=np.inf,shape=(self.ps,9))
         self.name='DE'
 
-    # def rand1(self, position, Fs):
-    #     NP = position.shape[0]
-    #     ps = self.ps
-    #     r1 = np.random.randint(ps, size=NP)
-    #     r2 = np.random.randint(ps,size=NP)
-    #     r3 = np.random.randint(ps,size=NP)
-
-    #     x1 = self.population.current_position[r1]
-    #     x2 = self.population.current_position[r2]
-    #     x3 = self.population.current_position[r3]
-    #     trail = x3 + Fs * (x1 - x2) 
-
-    #     return trail
-
-    # def best2(self, position, Fs):
-    #     NP = position.shape[0]
-    #     ps = self.ps
-    #     r1 = np.random.randint(ps, size=NP)
-    #     r2 = np.random.randint(ps, size=NP)
-    #     r3 = np.random.randint(ps, size=NP)
-    #     r4 = np.random.randint(ps, size=NP)
-
-    #     x1 = self.population.current_position[r1]
-    #     x2 = self.population.current_position[r2]
-    #     x3 = self.population.current_position[r3]
-    #     x4 = self.population.current_position[r4]
-    #     trail = self.population.gbest_position + Fs * (x1 - x2) + Fs * (x3 - x4)
-
-    #     return trail
-
-    
-    # def current2rand(self, position, Fs):
-    #     NP = position.shape[0]
-    #     ps = self.ps
-    #     r1 = np.random.randint(ps, size=NP)
-    #     r2 = np.random.randint(ps,size=NP)
-    #     r3 = np.random.randint(ps,size=NP)
-
-    #     x1 = self.population.current_position[r1]
-    #     x2 = self.population.current_position[r2]
-    #     x3 = self.population.current_position[r3]
-    #     trail = position + Fs * (x1 - position) + Fs * (x2 - x3)
-
-    #     return trail
-    
-    # def current2best(self, position, F1,F2):
-    #     NP = position.shape[0]
-    #     ps = self.ps
-    #     r1 = np.random.randint(ps, size=NP)
-    #     r2 = np.random.randint(ps,size=NP)
-
-    #     x1 = self.population.current_position[r1]
-    #     x2 = self.population.current_position[r2]
-    #     trail = position + F1 * (self.population.gbest_position - position) + F2 * (x1 - x2)
-
-    #     return trail
-
-    # def current2pbest(self, position,pbest, F1,F2):
-    #     NP = position.shape[0]
-    #     ps = self.ps
-    #     r1 = np.random.randint(ps, size=NP)
-    #     r2 = np.random.randint(ps,size=NP)
-
-    #     x1 = self.population.current_position[r1]
-    #     x2 = self.population.current_position[r2]
-    #     trail = position + F1 * (pbest- position) + F2 * (x1 - x2)
-
-    #     return trail
-    
-    # def get_random_pbest(self):
-    #     p_rate= ( 0.4  -   1  ) * self.fes/self.max_fes + 1
-    #     p_random_index = np.random.randint(0, int(np.ceil(self.ps*p_rate)), size=(self.ps))
-
-    #     sorted_index=np.argsort(self.population.pbest_cost)
-    #     sorted_pbest_pos=self.population.pbest_position[sorted_index]
-    #     return sorted_pbest_pos[p_random_index]
 
     def mutate(self, position, Fs):
         NP = position.shape[0]
@@ -242,3 +166,81 @@ class DE(gym.Env):
                 
         return self.population,0,self.population.cur_fes>=self.max_fes,{}
     
+    
+    
+    # def rand1(self, position, Fs):
+    #     NP = position.shape[0]
+    #     ps = self.ps
+    #     r1 = np.random.randint(ps, size=NP)
+    #     r2 = np.random.randint(ps,size=NP)
+    #     r3 = np.random.randint(ps,size=NP)
+
+    #     x1 = self.population.current_position[r1]
+    #     x2 = self.population.current_position[r2]
+    #     x3 = self.population.current_position[r3]
+    #     trail = x3 + Fs * (x1 - x2) 
+
+    #     return trail
+
+    # def best2(self, position, Fs):
+    #     NP = position.shape[0]
+    #     ps = self.ps
+    #     r1 = np.random.randint(ps, size=NP)
+    #     r2 = np.random.randint(ps, size=NP)
+    #     r3 = np.random.randint(ps, size=NP)
+    #     r4 = np.random.randint(ps, size=NP)
+
+    #     x1 = self.population.current_position[r1]
+    #     x2 = self.population.current_position[r2]
+    #     x3 = self.population.current_position[r3]
+    #     x4 = self.population.current_position[r4]
+    #     trail = self.population.gbest_position + Fs * (x1 - x2) + Fs * (x3 - x4)
+
+    #     return trail
+
+    
+    # def current2rand(self, position, Fs):
+    #     NP = position.shape[0]
+    #     ps = self.ps
+    #     r1 = np.random.randint(ps, size=NP)
+    #     r2 = np.random.randint(ps,size=NP)
+    #     r3 = np.random.randint(ps,size=NP)
+
+    #     x1 = self.population.current_position[r1]
+    #     x2 = self.population.current_position[r2]
+    #     x3 = self.population.current_position[r3]
+    #     trail = position + Fs * (x1 - position) + Fs * (x2 - x3)
+
+    #     return trail
+    
+    # def current2best(self, position, F1,F2):
+    #     NP = position.shape[0]
+    #     ps = self.ps
+    #     r1 = np.random.randint(ps, size=NP)
+    #     r2 = np.random.randint(ps,size=NP)
+
+    #     x1 = self.population.current_position[r1]
+    #     x2 = self.population.current_position[r2]
+    #     trail = position + F1 * (self.population.gbest_position - position) + F2 * (x1 - x2)
+
+    #     return trail
+
+    # def current2pbest(self, position,pbest, F1,F2):
+    #     NP = position.shape[0]
+    #     ps = self.ps
+    #     r1 = np.random.randint(ps, size=NP)
+    #     r2 = np.random.randint(ps,size=NP)
+
+    #     x1 = self.population.current_position[r1]
+    #     x2 = self.population.current_position[r2]
+    #     trail = position + F1 * (pbest- position) + F2 * (x1 - x2)
+
+    #     return trail
+    
+    # def get_random_pbest(self):
+    #     p_rate= ( 0.4  -   1  ) * self.fes/self.max_fes + 1
+    #     p_random_index = np.random.randint(0, int(np.ceil(self.ps*p_rate)), size=(self.ps))
+
+    #     sorted_index=np.argsort(self.population.pbest_cost)
+    #     sorted_pbest_pos=self.population.pbest_position[sorted_index]
+    #     return sorted_pbest_pos[p_random_index]
