@@ -124,6 +124,13 @@ class DE(gym.Env):
             self.problem=action['problem']
             return None,None,None,{}
         
+        '''
+            action is a dict like  
+            {"F":0.5,"Cr":0.9}
+            or {"F":0.5,"Cr":0.9,"fes":1000}
+            or {"F":0.5,"Cr":0.9,"skip_step":10}
+        '''
+        
 
         # skip_step=action['skip_step']
 
@@ -133,11 +140,13 @@ class DE(gym.Env):
             step_fes=action['fes']
             next_fes=self.population.cur_fes+step_fes
         else:
-            assert True, 'action error!!'
+            skip_step = 1
+
 
         step_end=False
         step=0
 
+        
         # while self.population.cur_fes<next_fes and self.population.cur_fes<self.max_fes:
         while not step_end:
             old_pos=self.population.current_position

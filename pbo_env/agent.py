@@ -10,8 +10,6 @@ from torch.utils.data import Dataset
 
 from einops import rearrange
 
-# from q_transformer.q_robotic_transformer import QRoboticTransformer
-
 from torchtyping import TensorType
 
 from beartype import beartype
@@ -25,7 +23,6 @@ assert sys.maxsize > (2 ** 32), 'you need to be on 64 bit system to store > 2GB 
 
 # constants
 
-# TEXT_EMBEDS_FILENAME = 'text_embeds.memmap.npy'
 STATES_FILENAME = 'states.memmap.npy'
 ACTIONS_FILENAME = 'actions.memmap.npy'
 REWARDS_FILENAME = 'rewards.memmap.npy'
@@ -47,22 +44,25 @@ class ReplayMemoryDataset(Dataset):
     @beartype
     def __init__(
         self,
-        folder: str = DEFAULT_REPLAY_MEMORIES_FOLDER,
+        cfg,
         num_timesteps: int = 1
     ):
         assert num_timesteps >= 1
         self.is_single_timestep = num_timesteps == 1
         self.num_timesteps = num_timesteps
 
-        folder = Path(folder)
+        
+        folder = Path(cfg.replay_memories_folder)
         assert folder.exists() and folder.is_dir()
 
-        # text_embeds_path = folder / TEXT_EMBEDS_FILENAME
+        
         states_path = folder / STATES_FILENAME
         actions_path = folder / ACTIONS_FILENAME
         rewards_path = folder / REWARDS_FILENAME
         dones_path = folder / DONES_FILENAME
 
+        
+        
         # self.text_embeds = open_memmap(str(text_embeds_path), dtype = 'float32', mode = 'r')
         self.states = open_memmap(str(states_path), dtype = 'float32', mode = 'r')
         self.actions = open_memmap(str(actions_path), dtype = 'int', mode = 'r')
@@ -126,11 +126,10 @@ class BaseEnvironment(Module):
         self,
         *,
         state_shape: Tuple[int, ...],
-        # text_embed_shape: Union[int, Tuple[int, ...]]
     ):
         super().__init__()
         self.state_shape = state_shape
-        # self.text_embed_shape = cast_tuple(text_embed_shape)
+        
         self.register_buffer('dummy', torch.zeros(0), persistent = False)
 
     @property
@@ -174,7 +173,7 @@ class Agent(Module):
 
         self.environment = environment
 
-        assert hasattr(environment, 'state_shape') and hasattr(environment, 'text_embed_shape')
+        assert hasattr(environment, 'state_shape')
 
         assert 0. <= epsilon_start <= 1.
         assert 0. <= epsilon_end <= 1.
@@ -203,12 +202,6 @@ class Agent(Module):
         num_actions = q_model.num_actions
         state_shape = environment.state_shape
 
-        # if condition_on_text:
-        #     text_embeds_path = mem_path / TEXT_EMBEDS_FILENAME
-        #     text_embed_shape = environment.text_embed_shape
-        #     self.text_embed_shape = text_embed_shape
-        #     self.text_embeds = open_memmap(str(text_embeds_path), dtype = 'float32', mode = 'w+', shape = (*prec_shape, *text_embed_shape))
-
         self.states      = open_memmap(str(states_path), dtype = 'float32', mode = 'w+', shape = (*prec_shape, *state_shape))
         self.actions     = open_memmap(str(actions_path), dtype = 'int', mode = 'w+', shape = (*prec_shape, num_actions))
         self.rewards     = open_memmap(str(rewards_path), dtype = 'float32', mode = 'w+', shape = prec_shape)
@@ -220,7 +213,7 @@ class Agent(Module):
     @beartype
     @torch.no_grad()
     def forward(self):
-        self.q_transformer.eval()
+        self.q_model.eval()
 
         for episode in range(self.num_episodes):
             print(f'episode {episode}')

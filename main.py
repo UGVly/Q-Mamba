@@ -37,7 +37,6 @@ def run(cfg):
     env = Environment
     (
     state_shape = (3, 6, 224, 224),
-    text_embed_shape = (768,)
     )
     
     if cfg.mode == 'train':
