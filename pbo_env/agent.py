@@ -221,6 +221,8 @@ class Agent(Module):
             curr_state = self.environment.init()
 
             for step in tqdm(range(self.max_num_steps_per_episode)):
+                
+                print(f'step {step}')
                 last_step = step == (self.max_num_steps_per_episode - 1)
 
                 epsilon = self.get_epsilon(step)
@@ -229,6 +231,8 @@ class Agent(Module):
                     rearrange(curr_state, '... -> 1 ...'),
                     prob_random_action = epsilon
                 )
+                
+                print(f'actions: {actions}')
 
                 reward, next_state, done = self.environment(actions)
 
@@ -254,8 +258,6 @@ class Agent(Module):
 
                 curr_state = next_state
 
-            if self.condition_on_text:
-                self.text_embeds.flush()
 
             self.states.flush()
             self.actions.flush()
@@ -263,9 +265,6 @@ class Agent(Module):
             self.dones.flush()
 
         # close memmap
-
-        if self.condition_on_text:
-            del self.text_embeds
 
         del self.states
         del self.actions

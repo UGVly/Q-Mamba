@@ -664,18 +664,18 @@ class QTransformer(Module):
 
     def get_actions(
         self,
-        video,
+        state,
         *args,
         prob_random_action = 0.,  # otherwise known as epsilon in RL
         **kwargs,
     ):
-        batch_size = video.shape[0]
+        batch_size = state.shape[0]
         assert 0. <= prob_random_action <= 1.
 
         if random() < prob_random_action:
             return self.get_random_actions(batch_size = batch_size)
 
-        return self.get_optimal_actions(video, *args, **kwargs)
+        return self.get_optimal_actions(state, *args, **kwargs)
 
     # @classifier_free_guidance
     def forward(
@@ -690,7 +690,6 @@ class QTransformer(Module):
 
         if exists(actions):
             actions = actions.to(self.device)
-
 
         # head that returns the q values
         # supporting both single and multiple actions

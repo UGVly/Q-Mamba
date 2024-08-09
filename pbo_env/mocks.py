@@ -31,7 +31,7 @@ class MockReplayDataset(Dataset):
         length = 10000,
         num_actions = 1,
         num_action_bins = 256,
-        state_shape = (6, 224, 224)
+        state_shape =(10,)  
     ):
         self.length = length
         self.num_actions = num_actions
