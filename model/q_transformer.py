@@ -14,6 +14,9 @@ from beartype.typing import Union, List, Optional, Callable, Tuple, Dict, Any
 from einops import pack, unpack, repeat, reduce, rearrange
 from einops.layers.torch import Rearrange, Reduce
 
+
+import sys
+sys.path.append('../')
 from model.Attend import Attend
 
 # from classifier_free_guidance_pytorch import (
@@ -162,6 +165,7 @@ class TransformerAttention(Module):
         return_cache = False
     ):
         b = x.shape[0]
+        print('x:', x.shape)
 
         assert xnor(exists(context), exists(self.context_norm))
 
@@ -176,8 +180,15 @@ class TransformerAttention(Module):
 
         if exists(cond_fn):
             x = cond_fn(x)
+            
+        print('x:', x.shape)
 
         q, k, v = self.to_q(x), *self.to_kv(kv_input).chunk(2, dim = -1)
+        
+        print('q:', q.shape)
+        print('k:', k.shape)
+        print('v:', v.shape)
+        
 
         q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> b h n d', h = self.heads), (q, k, v))
 
@@ -567,12 +578,13 @@ class QTransformer(Module):
     @beartype
     def __init__(
         self,
+        opts,
         *,
         num_actions = 8,
         action_bins = 256,
         depth = 6,
         heads = 8,
-        dim_head = 64,
+        dim_head = 10,
         token_learner_ff_mult = 2,
         token_learner_num_layers = 2,
         token_learner_num_output_tokens = 8,
@@ -584,7 +596,7 @@ class QTransformer(Module):
         condition_on_text = True,
         q_head_attn_kwargs: dict = dict(
             attn_heads = 8,
-            attn_dim_head = 64,
+            attn_dim_head = 10,
             attn_depth = 2
         ),
         weight_tie_action_bin_embed = True      # when projecting to action bin Q values, whether to weight tie to original embeddings
@@ -641,7 +653,13 @@ class QTransformer(Module):
         actions: Optional[Tensor] = None,
         **kwargs
     ):
-        encoded_state = self.encode_state(*args, **kwargs)
+        print('args:', args)
+        encoded_state = args[0]
+        
+        encode_state = rearrange(encoded_state, 'b d -> b 1 d')
+        print('encoded_state:', encoded_state.shape)
+        # print('kwargs:', kwargs)
+        # encoded_state = self.encode_state(*args, **kwargs)
         return self.q_head.get_optimal_actions(encoded_state, return_q_values = return_q_values, actions = actions)
 
     def get_actions(

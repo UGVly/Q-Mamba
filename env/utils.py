@@ -12,4 +12,4 @@ class CloudpickleWrapper(object):
         return cloudpickle.dumps(self.data)
 
     def __setstate__(self, data: str) -> None:
-        self.data = cloudpickle.loads(data)
+        self.data = cloudpickle.loads(data) 

@@ -8,7 +8,7 @@ from model.q_mamba import QMamba
 from model.q_transformer import QTransformer
 from model.q_lstm import QLSTM
 
-from execute.agent import Agent
+from pbo_env.agent import Agent
 from execute.q_learner import QLearner
 
 from pbo_env.env import Environment
@@ -34,11 +34,7 @@ def run(cfg):
     pprint.pprint(vars(cfg))
     
     
-    env = Environment
-    (
-    state_shape = (3, 6, 224, 224),
-    )
-    
+    env = Environment()
     if cfg.mode == 'train':
         
         # agent is a class that allows the q-model to interact with the environment to generate a replay memory dataset for learning

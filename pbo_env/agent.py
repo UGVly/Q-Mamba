@@ -218,21 +218,15 @@ class Agent(Module):
         for episode in range(self.num_episodes):
             print(f'episode {episode}')
 
-            instruction, curr_state = self.environment.init()
+            curr_state = self.environment.init()
 
             for step in tqdm(range(self.max_num_steps_per_episode)):
                 last_step = step == (self.max_num_steps_per_episode - 1)
 
                 epsilon = self.get_epsilon(step)
 
-                text_embed = None
-
-                if self.condition_on_text:
-                    text_embed = self.q_transformer.embed_texts([instruction])
-
-                actions = self.q_transformer.get_actions(
+                actions = self.q_model.get_actions(
                     rearrange(curr_state, '... -> 1 ...'),
-                    text_embeds = text_embed,
                     prob_random_action = epsilon
                 )
 
@@ -242,9 +236,9 @@ class Agent(Module):
 
                 # store memories using memmap, for later reflection and learning
 
-                if self.condition_on_text:
-                    assert text_embed.shape[1:] == self.text_embed_shape
-                    self.text_embeds[episode, step] = text_embed
+                # if self.condition_on_text:
+                #     assert text_embed.shape[1:] == self.text_embed_shape
+                #     self.text_embeds[episode, step] = text_embed
 
                 self.states[episode, step]      = curr_state
                 self.actions[episode, step]     = actions
