@@ -165,7 +165,7 @@ class TransformerAttention(Module):
         return_cache = False
     ):
         b = x.shape[0]
-        print('x:', x.shape)
+        # print('x:', x.shape)
 
         assert xnor(exists(context), exists(self.context_norm))
 
@@ -173,7 +173,11 @@ class TransformerAttention(Module):
             context = self.context_norm(context)
 
         kv_input = default(context, x)
-
+        
+        # print('kv_input:', kv_input.shape)
+        # print("x:", x.shape)
+        # if exists(context):
+        #     print('context:', context.shape)
         x = self.norm(x)
 
         assert xnor(exists(cond_fn), self.adaptive_ln)
@@ -181,13 +185,13 @@ class TransformerAttention(Module):
         if exists(cond_fn):
             x = cond_fn(x)
             
-        print('x:', x.shape)
+        # print('x:', x.shape)
 
         q, k, v = self.to_q(x), *self.to_kv(kv_input).chunk(2, dim = -1)
         
-        print('q:', q.shape)
-        print('k:', k.shape)
-        print('v:', v.shape)
+        # print('q:', q.shape)
+        # print('k:', k.shape)
+        # print('v:', v.shape)
         
 
         q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> b h n d', h = self.heads), (q, k, v))
@@ -275,6 +279,9 @@ class Transformer(Module):
         cache = iter(default(cache, []))
 
         new_caches = []
+        
+        # print('__x:', x.shape)
+        # print('__attn_mask:', attn_mask.shape) None
 
         for attn, maybe_cross_attn, ff in self.layers:
             attn_out, new_cache = attn(
@@ -287,6 +294,7 @@ class Transformer(Module):
 
             new_caches.append(new_cache)
 
+            # print("_x:", x.shape)
             x = x + attn_out
 
             if exists(maybe_cross_attn):
@@ -443,12 +451,17 @@ class QHeadMultipleActions(Module):
         return self.action_bin_embeddings.device
 
     def maybe_append_actions(self, sos_tokens, actions: Optional[Tensor] = None):
+        # print('actions:', actions.shape)
+        # print('sos_tokens:', sos_tokens.shape)
+        
         if not exists(actions):
+            # print('not exist actions')
             return sos_tokens
-
+        
         batch, num_actions = actions.shape
         action_embeddings = self.action_bin_embeddings[:num_actions]
-
+        print('action_embeddings:', action_embeddings.shape)
+        
         action_embeddings = repeat(action_embeddings, 'n a d -> b n a d', b = batch)
         past_action_bins = repeat(actions, 'b n -> b n 1 d', d = action_embeddings.shape[-1])
 
@@ -501,8 +514,10 @@ class QHeadMultipleActions(Module):
             return self.get_random_actions(batch)
 
         sos_token = reduce(encoded_state, 'b ... d -> b 1 d', 'mean')
+        
+        # print('sos_token:', sos_token.shape)
         tokens = self.maybe_append_actions(sos_token, actions = actions)
-
+        # print('tokens:', tokens.shape)
         action_bins = []
         cache = None
 
@@ -514,6 +529,10 @@ class QHeadMultipleActions(Module):
                 cache = cache,
                 return_cache = True
             )
+            
+            # print('embed:', embed.shape)
+            # print("cache:", cache.shape)
+            
 
             last_embed = embed[:, action_idx]
             bin_embeddings = self.action_bin_embeddings[action_idx]
@@ -584,7 +603,7 @@ class QTransformer(Module):
         action_bins = 256,
         depth = 6,
         heads = 8,
-        dim_head = 10,
+        dim_head = 10, 
         token_learner_ff_mult = 2,
         token_learner_num_layers = 2,
         token_learner_num_output_tokens = 8,
@@ -596,7 +615,7 @@ class QTransformer(Module):
         condition_on_text = True,
         q_head_attn_kwargs: dict = dict(
             attn_heads = 8,
-            attn_dim_head = 10,
+            attn_dim_head = 64, # 64,
             attn_depth = 2
         ),
         weight_tie_action_bin_embed = True      # when projecting to action bin Q values, whether to weight tie to original embeddings
@@ -653,13 +672,11 @@ class QTransformer(Module):
         actions: Optional[Tensor] = None,
         **kwargs
     ):
-        print('args:', args)
+        
         encoded_state = args[0]
         
-        encode_state = rearrange(encoded_state, 'b d -> b 1 d')
-        print('encoded_state:', encoded_state.shape)
-        # print('kwargs:', kwargs)
-        # encoded_state = self.encode_state(*args, **kwargs)
+        encoded_state = rearrange(encoded_state, 'b d -> b 1 d')
+        
         return self.q_head.get_optimal_actions(encoded_state, return_q_values = return_q_values, actions = actions)
 
     def get_actions(
