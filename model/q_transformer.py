@@ -703,7 +703,7 @@ class QTransformer(Module):
 
         # just auto-move inputs to the same device as robotic transformer
 
-        video = video.to(self.device)
+        feats = feats.to(self.device)
 
         if exists(actions):
             actions = actions.to(self.device)
@@ -711,6 +711,7 @@ class QTransformer(Module):
         # head that returns the q values
         # supporting both single and multiple actions
 
+        feats = rearrange(feats, 'b d -> b 1 d')
         if self.is_single_action:
             assert not exists(actions), 'actions should not be passed in for single action robotic transformer'
             q_values = self.q_head(feats)

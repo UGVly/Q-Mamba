@@ -41,7 +41,7 @@ def get_options(args=None):
     parser.add_argument('--batch_size', type = int, default = 4, help = 'batch size')
     parser.add_argument('--grad_accum_every', type = int, default = 4, help = 'gradient accumulation every n steps')
     
-    parser.add_argument('--replay_memories_folder',type = str, default = './replay_memories_data_default', help = 'folder to save replay memories')
+    parser.add_argument('--replay_memories_folder',type = str, default = './replay_memories_data_debug', help = 'folder to save replay memories')
     parser.add_argument('--log_dir', type = str, default = './logs', help = 'folder to save logs')
     
     opts = parser.parse_args(args)

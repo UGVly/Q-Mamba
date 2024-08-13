@@ -533,7 +533,8 @@ class QLearner(Module):
 
         actions = rearrange(actions, '... -> (...) 1')
 
-        dataset_action_mask = torch.zeros_like(q_preds).scatter_(-1, actions, torch.ones_like(q_preds))
+        # dataset_action_mask = torch.zeros_like(q_preds).scatter_(-1, actions, torch.ones_like(q_preds))
+        dataset_action_mask = torch.zeros_like(q_preds).scatter_(-1, actions.long(), torch.ones_like(q_preds))
 
         q_actions_not_taken = q_preds[~dataset_action_mask.bool()]
         q_actions_not_taken = rearrange(q_actions_not_taken, '(b t a) -> b t a', b = batch, a = num_non_dataset_actions)
@@ -563,7 +564,7 @@ class QLearner(Module):
         replay_buffer_iter = cycle(self.dataloader)
 
         self.model.train()
-        self.ema_moema_modeldel.train()
+        self.ema_model.train()
 
         while step < self.num_train_steps:
 

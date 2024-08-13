@@ -232,7 +232,7 @@ class Agent(Module):
                     prob_random_action = epsilon
                 )
                 
-                print(f'actions: {actions}')
+                # print(f'actions: {actions}')
 
                 reward, next_state, done = self.environment(actions)
 
