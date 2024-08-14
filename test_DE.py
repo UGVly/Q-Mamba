@@ -1,4 +1,4 @@
-from pbo_env.tranditional_DE import DE
+from pbo_env.traditional_DE import DE
 # from dataset.cec_test_func import SphereFunction
 from dataset.generate_dataset import sample_batch_task_cec21,get_train_set_cec21
 from dataset.cec_test_func import *

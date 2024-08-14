@@ -3,7 +3,7 @@ from torch.utils.data import Dataset
 
 from options import get_options
 from pbo_env.agent import Agent, ReplayMemoryDataset
-from pbo_env.tranditional_DE import DE
+from pbo_env.traditional_DE import DE
 from pbo_env.mocks import MockEnvironment, MockReplayDataset, MockReplayNStepDataset
 from model.q_transformer import  QTransformer
 
