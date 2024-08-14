@@ -603,7 +603,7 @@ class QTransformer(Module):
         action_bins = 256,
         depth = 6,
         heads = 8,
-        dim_head = 10, 
+        dim_head = 9, 
         token_learner_ff_mult = 2,
         token_learner_num_layers = 2,
         token_learner_num_output_tokens = 8,
@@ -676,7 +676,8 @@ class QTransformer(Module):
         encoded_state = args[0]
         
         encoded_state = rearrange(encoded_state, 'b d -> b 1 d')
-        
+        # print("--encoded_state.shape",encoded_state.shape)
+        print("--encoded_state.dtype",encoded_state.dtype)
         return self.q_head.get_optimal_actions(encoded_state, return_q_values = return_q_values, actions = actions)
 
     def get_actions(

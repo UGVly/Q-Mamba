@@ -126,10 +126,11 @@ class BaseEnvironment(Module):
         self,
         *,
         state_shape: Tuple[int, ...],
+        cfg = None,
     ):
         super().__init__()
         self.state_shape = state_shape
-        
+        self.cfg = cfg
         self.register_buffer('dummy', torch.zeros(0), persistent = False)
 
     @property
@@ -219,7 +220,7 @@ class Agent(Module):
             print(f'episode {episode}')
 
             curr_state = self.environment.init()
-
+            print("curr_state: ",curr_state.shape," ",curr_state.dtype)
             for step in tqdm(range(self.max_num_steps_per_episode)):
                 
                 print(f'step {step}')
@@ -232,7 +233,7 @@ class Agent(Module):
                     prob_random_action = epsilon
                 )
                 
-                # print(f'actions: {actions}')
+                print(f'actions: {actions}')
 
                 reward, next_state, done = self.environment(actions)
 
