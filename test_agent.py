@@ -27,7 +27,7 @@ def test_agent(opts):
     q_learner = QLearner(
     model,
     dataset = ReplayMemoryDataset(opts),
-    num_train_steps = 20,
+    num_train_steps = 200,
     learning_rate = 3e-4,
     batch_size = 4,
     grad_accum_every = 4,

@@ -27,6 +27,8 @@ from accelerate.utils import DistributedDataParallelKwargs
 
 from ema_pytorch import EMA
 
+import pprint
+
 # constants
 
 QIntermediates = namedtuple('QIntermediates', [
@@ -492,8 +494,10 @@ class QLearner(Module):
         min_reward: Optional[float] = None,
         monte_carlo_return: Optional[float] = None
     ):
-        _, _, actions, *_ = args
+        
 
+        states, actions, next_state, rewards, dones = args
+        
         # q-learn kwargs
 
         q_learn_kwargs = dict(
@@ -532,9 +536,13 @@ class QLearner(Module):
         num_non_dataset_actions = num_action_bins - 1
 
         actions = rearrange(actions, '... -> (...) 1')
-
-        # dataset_action_mask = torch.zeros_like(q_preds).scatter_(-1, actions, torch.ones_like(q_preds))
-        dataset_action_mask = torch.zeros_like(q_preds).scatter_(-1, actions.long(), torch.ones_like(q_preds))
+        
+        # print("actions: ",actions.shape)   torch.Size([40, 1])
+        # print("q_preds: ",q_preds.shape)  torch.Size([32, 256])
+        # print("batch, num_non_dataset_actions",batch,' ', num_non_dataset_actions) 
+        
+        dataset_action_mask = torch.zeros_like(q_preds).scatter_(-1, actions, torch.ones_like(q_preds))
+        # dataset_action_mask = torch.zeros_like(q_preds).scatter_(-1, actions.long(), torch.ones_like(q_preds))
 
         q_actions_not_taken = q_preds[~dataset_action_mask.bool()]
         q_actions_not_taken = rearrange(q_actions_not_taken, '(b t a) -> b t a', b = batch, a = num_non_dataset_actions)

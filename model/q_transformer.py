@@ -460,7 +460,7 @@ class QHeadMultipleActions(Module):
         
         batch, num_actions = actions.shape
         action_embeddings = self.action_bin_embeddings[:num_actions]
-        print('action_embeddings:', action_embeddings.shape)
+        # print('action_embeddings:', action_embeddings.shape)
         
         action_embeddings = repeat(action_embeddings, 'n a d -> b n a d', b = batch)
         past_action_bins = repeat(actions, 'b n -> b n 1 d', d = action_embeddings.shape[-1])
