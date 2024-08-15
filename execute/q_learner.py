@@ -259,7 +259,6 @@ class QLearner(Module):
 
     def q_learn(
         self,
-        # text_embeds:    TensorType['b', 'd', float],
         states:         TensorType['b', 'f', float],
         actions:        TensorType['b', int],
         next_states:    TensorType['b', 'f',  float],
