@@ -1,0 +1,1 @@
+python main.py  --mode='train' --model q-mamba --num_episodes 5 --max_num_steps_per_episode 20 --num_train_steps 20 --checkpoint_every 5

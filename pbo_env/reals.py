@@ -71,7 +71,7 @@ class RealEnvironment(BaseEnvironment):
         self.prepopulation = ori_population
         state = ori_population.feature_encoding(opts.fea_mode)
         state = torch.tensor(state, device = self.device, dtype = torch.float32)
-        print("state.shape: ",state.shape)
+        # print("state.shape: ",state.shape)
         return state
 
     def get_random_problem(self, opts):

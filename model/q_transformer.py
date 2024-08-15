@@ -586,8 +586,9 @@ class QHeadMultipleActions(Module):
 
         tokens = self.maybe_append_actions(sos_token, actions = actions)
 
+        print('tokens:', tokens.shape)
         embed = self.transformer(tokens, context = encoded_state)
-
+        print("embed",embed.shape)
         return self.get_q_values(embed)
 
 # Robotic Transformer
@@ -597,22 +598,13 @@ class QTransformer(Module):
     @beartype
     def __init__(
         self,
-        opts,
+        cfg,
         *,
         num_actions = 8,
         action_bins = 256,
-        depth = 6,
-        heads = 8,
         dim_head = 9, 
-        token_learner_ff_mult = 2,
-        token_learner_num_layers = 2,
-        token_learner_num_output_tokens = 8,
         cond_drop_prob = 0.2,
-        use_attn_conditioner = False,
-        conditioner_kwargs: dict = dict(),
         dueling = False,                       # https://arxiv.org/abs/1511.06581
-        flash_attn = True,
-        condition_on_text = True,
         q_head_attn_kwargs: dict = dict(
             attn_heads = 8,
             attn_dim_head = 64, # 64,
@@ -627,6 +619,8 @@ class QTransformer(Module):
 
         assert num_actions >= 1
 
+        if cfg.num_actions != None:
+            num_actions = cfg.num_actions
         self.num_actions = num_actions
         self.is_single_action = num_actions == 1
         self.action_bins = action_bins
@@ -647,6 +641,7 @@ class QTransformer(Module):
         else:
             self.q_head = QHeadMultipleActions(
                 dim = dim_head,
+                num_actions = num_actions,
                 action_bins = action_bins,
                 dueling = dueling,
                 weight_tie_action_bin_embed = weight_tie_action_bin_embed,
@@ -677,7 +672,7 @@ class QTransformer(Module):
         
         encoded_state = rearrange(encoded_state, 'b d -> b 1 d')
         # print("--encoded_state.shape",encoded_state.shape)
-        print("--encoded_state.dtype",encoded_state.dtype)
+        # print("--encoded_state.dtype",encoded_state.dtype)
         return self.q_head.get_optimal_actions(encoded_state, return_q_values = return_q_values, actions = actions)
 
     def get_actions(
@@ -702,7 +697,7 @@ class QTransformer(Module):
         actions: Optional[Tensor] = None,
     ):
 
-        # just auto-move inputs to the same device as robotic transformer
+        # just auto-move inputs to the same device as optimize transformer
 
         feats = feats.to(self.device)
 
@@ -714,7 +709,7 @@ class QTransformer(Module):
 
         feats = rearrange(feats, 'b d -> b 1 d')
         if self.is_single_action:
-            assert not exists(actions), 'actions should not be passed in for single action robotic transformer'
+            assert not exists(actions), 'actions should not be passed in for single action optimize transformer'
             q_values = self.q_head(feats)
         else:
             q_values = self.q_head(feats, actions = actions)

@@ -19,6 +19,31 @@ import sys
 sys.path.append('../')
 from model.Attend import Attend
 
+# from model.mamba_minimal import Mamba
+from mamba_ssm import Mamba
+
+batch, length, dim = 2, 64, 16
+x = torch.randn(batch, length, dim).to("cuda")
+model = Mamba(
+    # This module uses roughly 3 * expand * d_model^2 parameters
+    d_model=dim, # Model dimension d_model
+    d_state=16,  # SSM state expansion factor
+    d_conv=4,    # Local convolution width
+    expand=2,    # Block expansion factor
+).to("cuda")
+y = model(x)
+assert y.shape == x.shape
+
+
+# from classifier_free_guidance_pytorch import (
+#     TextConditioner,
+#     AttentionTextConditioner,
+#     NullConditioner,
+#     classifier_free_guidance
+# )
+
+# helpers
+
 def exists(val):
     return val is not None
 
@@ -60,251 +85,251 @@ class RMSNorm(Module):
         return l2norm(x) * self.gamma * self.scale
 
 
-class FeedForward(Module):
-    def __init__(
-        self,
-        dim,
-        mult = 4,
-        dropout = 0.,
-        adaptive_ln = False
-    ):
-        super().__init__()
-        self.adaptive_ln = adaptive_ln
+# class FeedForward(Module):
+#     def __init__(
+#         self,
+#         dim,
+#         mult = 4,
+#         dropout = 0.,
+#         adaptive_ln = False
+#     ):
+#         super().__init__()
+#         self.adaptive_ln = adaptive_ln
 
-        inner_dim = int(dim * mult)
-        self.norm = RMSNorm(dim, affine = not adaptive_ln)
+#         inner_dim = int(dim * mult)
+#         self.norm = RMSNorm(dim, affine = not adaptive_ln)
 
-        self.net = nn.Sequential(
-            nn.Linear(dim, inner_dim),
-            nn.GELU(),
-            nn.Dropout(dropout),
-            nn.Linear(inner_dim, dim),
-            nn.Dropout(dropout)
-        )
+#         self.net = nn.Sequential(
+#             nn.Linear(dim, inner_dim),
+#             nn.GELU(),
+#             nn.Dropout(dropout),
+#             nn.Linear(inner_dim, dim),
+#             nn.Dropout(dropout)
+#         )
 
-    def forward(
-        self,
-        x,
-        cond_fn: Optional[Callable] = None
-    ):
-        x = self.norm(x)
+#     def forward(
+#         self,
+#         x,
+#         cond_fn: Optional[Callable] = None
+#     ):
+#         x = self.norm(x)
 
-        assert xnor(self.adaptive_ln, exists(cond_fn))
+#         assert xnor(self.adaptive_ln, exists(cond_fn))
 
-        if exists(cond_fn):
-            # adaptive layernorm
-            x = cond_fn(x)
+#         if exists(cond_fn):
+#             # adaptive layernorm
+#             x = cond_fn(x)
 
-        return self.net(x)
+#         return self.net(x)
 
-# attention
+# # attention
 
-class TransformerAttention(Module):
-    def __init__(
-        self,
-        dim,
-        dim_head = 64,
-        dim_context = None,
-        heads = 8,
-        num_mem_kv = 4,
-        norm_context = False,
-        adaptive_ln = False,
-        dropout = 0.1,
-        flash = True,
-        causal = False
-    ):
-        super().__init__()
-        self.heads = heads
-        inner_dim = dim_head * heads
+# class TransformerAttention(Module):
+#     def __init__(
+#         self,
+#         dim,
+#         dim_head = 64,
+#         dim_context = None,
+#         heads = 8,
+#         num_mem_kv = 4,
+#         norm_context = False,
+#         adaptive_ln = False,
+#         dropout = 0.1,
+#         flash = True,
+#         causal = False
+#     ):
+#         super().__init__()
+#         self.heads = heads
+#         inner_dim = dim_head * heads
 
-        dim_context = default(dim_context, dim)
+#         dim_context = default(dim_context, dim)
 
-        self.adaptive_ln = adaptive_ln
-        self.norm = RMSNorm(dim, affine = not adaptive_ln)
+#         self.adaptive_ln = adaptive_ln
+#         self.norm = RMSNorm(dim, affine = not adaptive_ln)
 
-        self.context_norm = RMSNorm(dim_context) if norm_context else None
+#         self.context_norm = RMSNorm(dim_context) if norm_context else None
 
-        self.attn_dropout = nn.Dropout(dropout)
+#         self.attn_dropout = nn.Dropout(dropout)
 
-        self.to_q = nn.Linear(dim, inner_dim, bias = False)
-        self.to_kv = nn.Linear(dim_context, inner_dim * 2, bias = False)
+#         self.to_q = nn.Linear(dim, inner_dim, bias = False)
+#         self.to_kv = nn.Linear(dim_context, inner_dim * 2, bias = False)
 
-        self.num_mem_kv = num_mem_kv
-        self.mem_kv = None
-        if num_mem_kv > 0:
-            self.mem_kv = nn.Parameter(torch.randn(2, heads, num_mem_kv, dim_head))
+#         self.num_mem_kv = num_mem_kv
+#         self.mem_kv = None
+#         if num_mem_kv > 0:
+#             self.mem_kv = nn.Parameter(torch.randn(2, heads, num_mem_kv, dim_head))
 
-        self.attend = Attend(
-            dropout = dropout,
-            flash = flash,
-            causal = causal
-        )
+#         self.attend = Attend(
+#             dropout = dropout,
+#             flash = flash,
+#             causal = causal
+#         )
 
-        self.to_out = nn.Sequential(
-            nn.Linear(inner_dim, dim, bias = False),
-            nn.Dropout(dropout)
-        )
+#         self.to_out = nn.Sequential(
+#             nn.Linear(inner_dim, dim, bias = False),
+#             nn.Dropout(dropout)
+#         )
 
-    def forward(
-        self,
-        x,
-        context = None,
-        mask = None,
-        attn_mask = None,
-        cond_fn: Optional[Callable] = None,
-        cache: Optional[Tensor] = None,
-        return_cache = False
-    ):
-        b = x.shape[0]
-        # print('x:', x.shape)
+#     def forward(
+#         self,
+#         x,
+#         context = None,
+#         mask = None,
+#         attn_mask = None,
+#         cond_fn: Optional[Callable] = None,
+#         cache: Optional[Tensor] = None,
+#         return_cache = False
+#     ):
+#         b = x.shape[0]
+#         # print('x:', x.shape)
 
-        assert xnor(exists(context), exists(self.context_norm))
+#         assert xnor(exists(context), exists(self.context_norm))
 
-        if exists(context):
-            context = self.context_norm(context)
+#         if exists(context):
+#             context = self.context_norm(context)
 
-        kv_input = default(context, x)
+#         kv_input = default(context, x)
         
-        # print('kv_input:', kv_input.shape)
-        # print("x:", x.shape)
-        # if exists(context):
-        #     print('context:', context.shape)
-        x = self.norm(x)
+#         # print('kv_input:', kv_input.shape)
+#         # print("x:", x.shape)
+#         # if exists(context):
+#         #     print('context:', context.shape)
+#         x = self.norm(x)
 
-        assert xnor(exists(cond_fn), self.adaptive_ln)
+#         assert xnor(exists(cond_fn), self.adaptive_ln)
 
-        if exists(cond_fn):
-            x = cond_fn(x)
+#         if exists(cond_fn):
+#             x = cond_fn(x)
             
-        # print('x:', x.shape)
+#         # print('x:', x.shape)
 
-        q, k, v = self.to_q(x), *self.to_kv(kv_input).chunk(2, dim = -1)
+#         q, k, v = self.to_q(x), *self.to_kv(kv_input).chunk(2, dim = -1)
         
-        # print('q:', q.shape)
-        # print('k:', k.shape)
-        # print('v:', v.shape)
+#         # print('q:', q.shape)
+#         # print('k:', k.shape)
+#         # print('v:', v.shape)
         
 
-        q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> b h n d', h = self.heads), (q, k, v))
+#         q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> b h n d', h = self.heads), (q, k, v))
 
-        if exists(cache):
-            ck, cv = cache
-            k = torch.cat((ck, k), dim = -2)
-            v = torch.cat((cv, v), dim = -2)
+#         if exists(cache):
+#             ck, cv = cache
+#             k = torch.cat((ck, k), dim = -2)
+#             v = torch.cat((cv, v), dim = -2)
 
-        new_kv_cache = torch.stack((k, v))
+#         new_kv_cache = torch.stack((k, v))
 
-        if exists(self.mem_kv):
-            mk, mv = map(lambda t: repeat(t, '... -> b ...', b = b), self.mem_kv)
+#         if exists(self.mem_kv):
+#             mk, mv = map(lambda t: repeat(t, '... -> b ...', b = b), self.mem_kv)
 
-            k = torch.cat((mk, k), dim = -2)
-            v = torch.cat((mv, v), dim = -2)
+#             k = torch.cat((mk, k), dim = -2)
+#             v = torch.cat((mv, v), dim = -2)
 
-            if exists(mask):
-                mask = F.pad(mask, (self.num_mem_kv, 0), value = True)
+#             if exists(mask):
+#                 mask = F.pad(mask, (self.num_mem_kv, 0), value = True)
 
-            if exists(attn_mask):
-                attn_mask = F.pad(attn_mask, (self.num_mem_kv, 0), value = True)
+#             if exists(attn_mask):
+#                 attn_mask = F.pad(attn_mask, (self.num_mem_kv, 0), value = True)
 
-        out = self.attend(q, k, v, mask = mask, attn_mask = attn_mask)
+#         out = self.attend(q, k, v, mask = mask, attn_mask = attn_mask)
 
-        out = rearrange(out, 'b h n d -> b n (h d)')
-        out = self.to_out(out)
+#         out = rearrange(out, 'b h n d -> b n (h d)')
+#         out = self.to_out(out)
 
-        if not return_cache:
-            return out
+#         if not return_cache:
+#             return out
 
-        return out, new_kv_cache
+#         return out, new_kv_cache
 
-class Transformer(Module):
-    def __init__(
-        self,
-        dim,
-        dim_head = 64,
-        heads = 8,
-        depth = 6,
-        attn_dropout = 0.,
-        ff_dropout = 0.,
-        adaptive_ln = False,
-        flash_attn = True,
-        cross_attend = False,
-        causal = False,
-        final_norm = True
-    ):
-        super().__init__()
-        self.layers = ModuleList([])
+# class Transformer(Module):
+#     def __init__(
+#         self,
+#         dim,
+#         dim_head = 64,
+#         heads = 8,
+#         depth = 6,
+#         attn_dropout = 0.,
+#         ff_dropout = 0.,
+#         adaptive_ln = False,
+#         flash_attn = True,
+#         cross_attend = False,
+#         causal = False,
+#         final_norm = True
+#     ):
+#         super().__init__()
+#         self.layers = ModuleList([])
 
-        attn_kwargs = dict(
-            dim = dim,
-            heads = heads,
-            dim_head = dim_head,
-            dropout = attn_dropout,
-            flash = flash_attn
-        )
+#         attn_kwargs = dict(
+#             dim = dim,
+#             heads = heads,
+#             dim_head = dim_head,
+#             dropout = attn_dropout,
+#             flash = flash_attn
+#         )
 
-        for _ in range(depth):
-            self.layers.append(ModuleList([
-                TransformerAttention(**attn_kwargs, causal = causal, adaptive_ln = adaptive_ln, norm_context = False),
-                TransformerAttention(**attn_kwargs, norm_context = True) if cross_attend else None,
-                FeedForward(dim = dim, dropout = ff_dropout, adaptive_ln = adaptive_ln)
-            ]))
+#         for _ in range(depth):
+#             self.layers.append(ModuleList([
+#                 TransformerAttention(**attn_kwargs, causal = causal, adaptive_ln = adaptive_ln, norm_context = False),
+#                 TransformerAttention(**attn_kwargs, norm_context = True) if cross_attend else None,
+#                 FeedForward(dim = dim, dropout = ff_dropout, adaptive_ln = adaptive_ln)
+#             ]))
 
-        self.norm = RMSNorm(dim) if final_norm else nn.Identity()
+#         self.norm = RMSNorm(dim) if final_norm else nn.Identity()
 
-    @beartype
-    def forward(
-        self,
-        x,
-        cond_fns: Optional[Tuple[Callable, ...]] = None,
-        attn_mask = None,
-        context: Optional[Tensor] = None,
-        cache: Optional[Tensor] = None,
-        return_cache = False
-    ):
-        has_cache = exists(cache)
+#     @beartype
+#     def forward(
+#         self,
+#         x,
+#         cond_fns: Optional[Tuple[Callable, ...]] = None,
+#         attn_mask = None,
+#         context: Optional[Tensor] = None,
+#         cache: Optional[Tensor] = None,
+#         return_cache = False
+#     ):
+#         has_cache = exists(cache)
 
-        if has_cache:
-            x_prev, x = x[..., :-1, :], x[..., -1:, :]
+#         if has_cache:
+#             x_prev, x = x[..., :-1, :], x[..., -1:, :]
 
-        cond_fns = iter(default(cond_fns, []))
-        cache = iter(default(cache, []))
+#         cond_fns = iter(default(cond_fns, []))
+#         cache = iter(default(cache, []))
 
-        new_caches = []
+#         new_caches = []
         
-        # print('__x:', x.shape)
-        # print('__attn_mask:', attn_mask.shape) None
+#         # print('__x:', x.shape)
+#         # print('__attn_mask:', attn_mask.shape) None
 
-        for attn, maybe_cross_attn, ff in self.layers:
-            attn_out, new_cache = attn(
-                x,
-                attn_mask = attn_mask,
-                cond_fn = next(cond_fns, None),
-                return_cache = True,
-                cache = next(cache, None)
-            )
+#         for attn, maybe_cross_attn, ff in self.layers:
+#             attn_out, new_cache = attn(
+#                 x,
+#                 attn_mask = attn_mask,
+#                 cond_fn = next(cond_fns, None),
+#                 return_cache = True,
+#                 cache = next(cache, None)
+#             )
 
-            new_caches.append(new_cache)
+#             new_caches.append(new_cache)
 
-            # print("_x:", x.shape)
-            x = x + attn_out
+#             # print("_x:", x.shape)
+#             x = x + attn_out
 
-            if exists(maybe_cross_attn):
-                assert exists(context)
-                x = maybe_cross_attn(x, context = context) + x
+#             if exists(maybe_cross_attn):
+#                 assert exists(context)
+#                 x = maybe_cross_attn(x, context = context) + x
 
-            x = ff(x, cond_fn = next(cond_fns, None)) + x
+#             x = ff(x, cond_fn = next(cond_fns, None)) + x
 
-        new_caches = torch.stack(new_caches)
+#         new_caches = torch.stack(new_caches)
 
-        if has_cache:
-            x = torch.cat((x_prev, x), dim = -2)
+#         if has_cache:
+#             x = torch.cat((x_prev, x), dim = -2)
 
-        out = self.norm(x)
+#         out = self.norm(x)
 
-        if not return_cache:
-            return out
+#         if not return_cache:
+#             return out
 
-        return out, new_caches
+#         return out, new_caches
 
 # Dueling heads for Q value
 
@@ -420,16 +445,25 @@ class QHeadMultipleActions(Module):
         if not weight_tie_action_bin_embed:
             self.to_q_values = nn.Linear(dim, action_bins)
 
-        self.transformer = Transformer(
-            dim = dim,
-            depth = attn_depth,
-            dim_head = attn_dim_head,
-            heads = attn_heads,
-            cross_attend = True,
-            adaptive_ln = False,
-            causal = True,
-            final_norm = True
-        )
+        # TODO: add mamba
+        self.mamba = model = Mamba(
+            # This module uses roughly 3 * expand * d_model^2 parameters
+            d_model=dim, # Model dimension d_model
+            d_state=16,  # SSM state expansion factor
+            d_conv=4,    # Local convolution width
+            expand=2,    # Block expansion factor
+        ).to("cuda")
+        
+        # self.transformer = Transformer(
+        #     dim = dim,
+        #     depth = attn_depth,
+        #     dim_head = attn_dim_head,
+        #     heads = attn_heads,
+        #     cross_attend = True,
+        #     adaptive_ln = False,
+        #     causal = True,
+        #     final_norm = True
+        # )
 
         self.final_norm = RMSNorm(dim)
 
@@ -451,7 +485,7 @@ class QHeadMultipleActions(Module):
         
         batch, num_actions = actions.shape
         action_embeddings = self.action_bin_embeddings[:num_actions]
-        print('action_embeddings:', action_embeddings.shape)
+        # print('action_embeddings:', action_embeddings.shape)
         
         action_embeddings = repeat(action_embeddings, 'n a d -> b n a d', b = batch)
         past_action_bins = repeat(actions, 'b n -> b n 1 d', d = action_embeddings.shape[-1])
@@ -513,13 +547,31 @@ class QHeadMultipleActions(Module):
         cache = None
 
         for action_idx in range(self.num_actions):
+            
+            # TODO: add mamba
 
-            embed, cache = self.transformer(
-                tokens,
-                context = encoded_state,
-                cache = cache,
-                return_cache = True
-            )
+            # embed, cache = self.transformer(
+            #     tokens,
+            #     context = encoded_state,
+            #     cache = cache,
+            #     return_cache = True
+            # )
+            
+            # if tokens.is_cuda:
+            #     print(f"tokens is on CUDA device: {tokens.device}")
+            # else:
+            #     print("tokens is on CPU")
+            
+            # if next(self.mamba.parameters()).is_cuda:
+            #     print(f"Model 'mamba' is on CUDA device: {next(self.mamba.parameters()).device}")
+            # else:
+            #     print("Model 'mamba' is on CPU")
+            
+            device = tokens.device
+            tokens = tokens.to("cuda")
+            embed = self.mamba(tokens)
+            embed = embed.to(device)
+            tokens = tokens.to(device)
             
             # print('embed:', embed.shape)
             # print("cache:", cache.shape)
@@ -577,33 +629,29 @@ class QHeadMultipleActions(Module):
 
         tokens = self.maybe_append_actions(sos_token, actions = actions)
 
-        embed = self.transformer(tokens, context = encoded_state)
+        # TODO: add mamba
+        # embed = self.transformer(tokens, context = encoded_state)
+        device = tokens.device
+        tokens = tokens.to("cuda")
+        embed = self.mamba(tokens)
+        embed = embed.to(device)
 
         return self.get_q_values(embed)
 
 # Robotic Transformer
 
-class QTransformer(Module):
+class QMamba(Module):
 
     @beartype
     def __init__(
         self,
-        opts,
+        cfg,
         *,
         num_actions = 8,
         action_bins = 256,
-        depth = 6,
-        heads = 8,
-        dim_head = 10, 
-        token_learner_ff_mult = 2,
-        token_learner_num_layers = 2,
-        token_learner_num_output_tokens = 8,
+        dim_head = 9, 
         cond_drop_prob = 0.2,
-        use_attn_conditioner = False,
-        conditioner_kwargs: dict = dict(),
         dueling = False,                       # https://arxiv.org/abs/1511.06581
-        flash_attn = True,
-        condition_on_text = True,
         q_head_attn_kwargs: dict = dict(
             attn_heads = 8,
             attn_dim_head = 64, # 64,
@@ -618,6 +666,8 @@ class QTransformer(Module):
 
         assert num_actions >= 1
 
+        if cfg.num_actions != None:
+            num_actions = cfg.num_actions
         self.num_actions = num_actions
         self.is_single_action = num_actions == 1
         self.action_bins = action_bins
@@ -638,6 +688,7 @@ class QTransformer(Module):
         else:
             self.q_head = QHeadMultipleActions(
                 dim = dim_head,
+                num_actions = num_actions,
                 action_bins = action_bins,
                 dueling = dueling,
                 weight_tie_action_bin_embed = weight_tie_action_bin_embed,
@@ -667,7 +718,8 @@ class QTransformer(Module):
         encoded_state = args[0]
         
         encoded_state = rearrange(encoded_state, 'b d -> b 1 d')
-        
+        # print("--encoded_state.shape",encoded_state.shape)
+        # print("--encoded_state.dtype",encoded_state.dtype)
         return self.q_head.get_optimal_actions(encoded_state, return_q_values = return_q_values, actions = actions)
 
     def get_actions(
@@ -692,9 +744,9 @@ class QTransformer(Module):
         actions: Optional[Tensor] = None,
     ):
 
-        # just auto-move inputs to the same device as robotic transformer
+        # just auto-move inputs to the same device as optimize transformer
 
-        video = video.to(self.device)
+        feats = feats.to(self.device)
 
         if exists(actions):
             actions = actions.to(self.device)
@@ -702,8 +754,9 @@ class QTransformer(Module):
         # head that returns the q values
         # supporting both single and multiple actions
 
+        feats = rearrange(feats, 'b d -> b 1 d')
         if self.is_single_action:
-            assert not exists(actions), 'actions should not be passed in for single action robotic transformer'
+            assert not exists(actions), 'actions should not be passed in for single action optimize transformer'
             q_values = self.q_head(feats)
         else:
             q_values = self.q_head(feats, actions = actions)

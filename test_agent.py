@@ -14,16 +14,16 @@ def test_agent(opts):
     
     model = QTransformer(opts)
     # env = MockEnvironment(state_shape = (9,))
-    env = RealEnvironment(cfg = opts, state_shape = (opts.state_dim,))
+    env = RealEnvironment(cfg = opts, state_shape = (opts.fea_dim,))
     
-    agent = Agent(
-        q_model = model,
-        environment = env,
-        num_episodes = 10,
-        max_num_steps_per_episode = 5,
-       )
+    # agent = Agent(
+    #     q_model = model,
+    #     environment = env,
+    #     num_episodes = 10,
+    #     max_num_steps_per_episode = 5,
+    #    )
 
-    agent()
+    # agent()
     
     
     q_learner = QLearner(
@@ -35,10 +35,13 @@ def test_agent(opts):
     grad_accum_every = 4,
     checkpoint_every = 10,
     )
+    
+    path = r"/home/data3/ZhouJiang2/AAAAAAAAA/Gong/Q-Mamba/checkpoints/checkpoint-1.pt"
+    q_learner.load(path)
 
     q_learner()
     
-    state = torch.randn((1,9))
+    state = torch.randn((1,9),device='cuda')
     action = model.get_optimal_actions(state)
     print(action)
 

@@ -44,7 +44,7 @@ class ReplayMemoryDataset(Dataset):
     @beartype
     def __init__(
         self,
-        cfg,
+        replay_memories_folder,
         num_timesteps: int = 1
     ):
         assert num_timesteps >= 1
@@ -52,7 +52,7 @@ class ReplayMemoryDataset(Dataset):
         self.num_timesteps = num_timesteps
 
         
-        folder = Path(cfg.replay_memories_folder)
+        folder = Path(replay_memories_folder)
         assert folder.exists() and folder.is_dir()
 
         
@@ -220,10 +220,10 @@ class Agent(Module):
             print(f'episode {episode}')
 
             curr_state = self.environment.init()
-            print("curr_state: ",curr_state.shape," ",curr_state.dtype)
+            # print("curr_state: ",curr_state.shape," ",curr_state.dtype)
             for step in tqdm(range(self.max_num_steps_per_episode)):
                 
-                print(f'step {step}')
+                # print(f'step {step}')
                 last_step = step == (self.max_num_steps_per_episode - 1)
 
                 epsilon = self.get_epsilon(step)
@@ -233,7 +233,7 @@ class Agent(Module):
                     prob_random_action = epsilon
                 )
                 
-                print(f'actions: {actions}')
+                # print(f'actions: {actions}')
 
                 reward, next_state, done = self.environment(actions)
 

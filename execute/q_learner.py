@@ -28,6 +28,7 @@ from accelerate.utils import DistributedDataParallelKwargs
 from ema_pytorch import EMA
 
 import pprint
+from tqdm import tqdm
 
 # constants
 
@@ -574,58 +575,62 @@ class QLearner(Module):
         self.model.train()
         self.ema_model.train()
 
-        while step < self.num_train_steps:
+        with tqdm(total=self.num_train_steps, desc="Training Progress") as pbar:
+            pbar.update(step)
+            while step < self.num_train_steps:
 
-            # zero grads
+                # zero grads
 
-            self.optimizer.zero_grad()
+                self.optimizer.zero_grad()
 
-            # main q-learning algorithm
+                # main q-learning algorithm
 
-            for grad_accum_step in range(self.grad_accum_every):
-                is_last = grad_accum_step == (self.grad_accum_every - 1)
-                context = partial(self.accelerator.no_sync, self.model) if not is_last else nullcontext
+                for grad_accum_step in range(self.grad_accum_every):
+                    is_last = grad_accum_step == (self.grad_accum_every - 1)
+                    context = partial(self.accelerator.no_sync, self.model) if not is_last else nullcontext
 
-                with self.accelerator.autocast(), context():
+                    with self.accelerator.autocast(), context():
 
-                    loss, (td_loss, conservative_reg_loss) = self.learn(
-                        *next(replay_buffer_iter),
-                        min_reward = min_reward,
-                        monte_carlo_return = monte_carlo_return
-                    )
+                        loss, (td_loss, conservative_reg_loss) = self.learn(
+                            *next(replay_buffer_iter),
+                            min_reward = min_reward,
+                            monte_carlo_return = monte_carlo_return
+                        )
 
-                    self.accelerator.backward(loss / self.grad_accum_every)
+                        self.accelerator.backward(loss / self.grad_accum_every)
 
-            self.print(f'td loss: {td_loss.item():.3f}')
+                # self.print(f'td loss: {td_loss.item():.3f}')
+                pbar.set_postfix(td_loss = td_loss.item(), conservative_reg_loss = conservative_reg_loss.item(), step = step)
 
-            # clip gradients (transformer best practices)
+                # clip gradients (transformer best practices)
 
-            self.accelerator.clip_grad_norm_(self.model.parameters(), self.max_grad_norm)
+                self.accelerator.clip_grad_norm_(self.model.parameters(), self.max_grad_norm)
 
-            # take optimizer step
+                # take optimizer step
 
-            self.optimizer.step()
+                self.optimizer.step()
 
-            # update target ema
+                # update target ema
 
-            self.wait()
+                self.wait()
 
-            self.ema_model.update()
+                self.ema_model.update()
 
-            # increment step
+                # increment step
 
-            step += 1
-            self.step.add_(1)
+                step += 1
+                self.step.add_(1)
+                pbar.update(1)
 
-            # whether to checkpoint or not
+                # whether to checkpoint or not
 
-            self.wait()
+                self.wait()
 
-            if self.is_main and is_divisible(step, self.checkpoint_every):
-                checkpoint_num = step // self.checkpoint_every
-                self.save(checkpoint_num)
+                if self.is_main and is_divisible(step, self.checkpoint_every):
+                    checkpoint_num = step // self.checkpoint_every
+                    self.save(checkpoint_num)
 
-            self.wait()
+                self.wait()
 
         self.print('training complete')
 
