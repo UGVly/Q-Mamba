@@ -14,7 +14,7 @@ def test_agent(opts):
     
     model = QTransformer(opts)
     # env = MockEnvironment(state_shape = (9,))
-    env = RealEnvironment(cfg = opts, state_shape = (9,))
+    env = RealEnvironment(cfg = opts, state_shape = (opts.state_dim,))
     
     agent = Agent(
         q_model = model,
@@ -38,7 +38,7 @@ def test_agent(opts):
 
     q_learner()
     
-    state = torch.randn(9)
+    state = torch.randn((1,9))
     action = model.get_optimal_actions(state)
     print(action)
 
