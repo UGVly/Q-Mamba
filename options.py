@@ -20,7 +20,7 @@ def get_options(args=None):
     # environment settings
     parser.add_argument('--population_size', type = int, default= 100,help='population size use in backbone algorithm')  # recommend 100
     
-    parser.add_argument('--dim', type=int, default=10,help='dimension of the sovling problems')
+    parser.add_argument('--dim', type=int, default=9,help='dimension of the sovling problems')
     parser.add_argument('--max_x',type=float,default=100,help='the upper bound of the searching range')
     parser.add_argument('--min_x',type=float,default=-100,help='the lower bound of the searching range')
     parser.add_argument('--boarder_method',default='clipping',choices=['clipping','random','periodic','reflect'], help='boarding methods')
@@ -34,12 +34,12 @@ def get_options(args=None):
     parser.add_argument('--fea_dim',type=int,default=9,help='dim of feature encoding( excluding those historical information)')
     
     # save
-   
+    parser.add_argument('--no_tb', action='store_true', help='disable Tensorboard logging')
     
     
     # agent
     parser.add_argument('--num_episodes', type = int, default = 1000, help = 'number of episodes')
-    parser.add_argument('--max_num_steps_per_episode', type = int, default = 10000, help = 'max number of steps per episode')
+    parser.add_argument('--max_num_steps_per_episode', type = int, default = 100, help = 'max number of steps per episode')
     parser.add_argument('--epsilon_start', type = float, default = 0.25, help = 'start epsilon')
     parser.add_argument('--epsilon_end', type = float, default = 0.001, help = 'end epsilon')
     parser.add_argument('--num_steps_to_target_epsilon', type = int, default = 1000, help = 'number of steps to target epsilon')

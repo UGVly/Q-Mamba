@@ -107,8 +107,16 @@ class QLearner(Module):
         optimizer_kwargs: dict = dict(),
         checkpoint_folder = './checkpoints',
         checkpoint_every = 1000,
+        tb_logger = None
     ):
         super().__init__()
+        
+        if tb_logger is not None:
+            self.no_tb = False
+            self.tb_logger = tb_logger
+            # self.tb_logger.log_hyperparams(locals())
+        else:
+            self.no_tb = True
 
         self.is_multiple_actions = model.num_actions > 1
 
@@ -600,7 +608,10 @@ class QLearner(Module):
 
                 # self.print(f'td loss: {td_loss.item():.3f}')
                 pbar.set_postfix(td_loss = td_loss.item(), conservative_reg_loss = conservative_reg_loss.item(), step = step)
-
+                self.tb_logger.add_scalar('td_loss', td_loss.item(), step)
+                self.tb_logger.add_scalar('conservative_reg_loss', conservative_reg_loss.item(), step)
+                self.tb_logger.add_scalar('total_loss', loss.item(), step)
+                
                 # clip gradients (transformer best practices)
 
                 self.accelerator.clip_grad_norm_(self.model.parameters(), self.max_grad_norm)

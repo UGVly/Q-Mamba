@@ -586,9 +586,9 @@ class QHeadMultipleActions(Module):
 
         tokens = self.maybe_append_actions(sos_token, actions = actions)
 
-        print('tokens:', tokens.shape)
+        # print('tokens:', tokens.shape)
         embed = self.transformer(tokens, context = encoded_state)
-        print("embed",embed.shape)
+        # print("embed",embed.shape)
         return self.get_q_values(embed)
 
 # Robotic Transformer

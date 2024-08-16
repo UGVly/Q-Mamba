@@ -1,4 +1,6 @@
 .idea/
+.checkpoints/
+.replay_memories_data_debug/
 __pycache__/
 *.py[cod]
 *$py.class

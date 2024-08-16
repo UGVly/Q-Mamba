@@ -126,9 +126,9 @@ class DE(gym.Env):
             
             trails = self.mutate(old_pos, F)
             
-            trails = self.crossover(old_pos, Cr)
+            trails = self.crossover(trails , Cr)
             
-            trails=self.current2best(old_pos,0.9,0.9)
+            # trails=self.current2best(old_pos,0.9,0.9)
 
             # trails=old_pos+F1*(rand_par_position-old_pos)+F2*(gbest_pos-old_pos)
             trails=np.clip(trails,self.min_x,self.max_x)
