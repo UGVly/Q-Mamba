@@ -43,7 +43,9 @@ def run(cfg):
         
     if not cfg.no_tb:
         tb_logger = SummaryWriter(os.path.join(cfg.log_dir, "{}D".format(cfg.dim), cfg.model))
-    # cfg.replay_memories_folder = cfg.replay_memories_folder + '/' + cfg.model
+    else:
+        tb_logger = None
+    cfg.replay_memories_folder = cfg.replay_memories_folder + '/' + cfg.model
          
     
     # Pretty print the run args
@@ -55,20 +57,20 @@ def run(cfg):
         
         # agent is a class that allows the q-model to interact with the environment to generate a replay memory dataset for learning
         
-        # agent = Agent(
-        #     q_model = model,
-        #     memories_dataset_folder = cfg.replay_memories_folder,
-        #     environment = env,
-        #     num_episodes = cfg.num_episodes,
-        #     max_num_steps_per_episode = cfg.max_num_steps_per_episode,
-        #     epsilon_start= cfg.epsilon_start,
-        #     epsilon_end = cfg.epsilon_end,
-        #     num_steps_to_target_epsilon = cfg.num_steps_to_target_epsilon,
-        #    )
+        agent = Agent(
+            q_model = model,
+            memories_dataset_folder = cfg.replay_memories_folder,
+            environment = env,
+            num_episodes = cfg.num_episodes,
+            max_num_steps_per_episode = cfg.max_num_steps_per_episode,
+            epsilon_start= cfg.epsilon_start,
+            epsilon_end = cfg.epsilon_end,
+            num_steps_to_target_epsilon = cfg.num_steps_to_target_epsilon,
+           )
 
-        # agent()
+        agent()
         
-        cfg.replay_memories_folder=r"/home/data3/ZhouJiang2/AAAAAAAAA/Gong/Q-Mamba/replay_memories_data_debug/q-transformer-"
+        # cfg.replay_memories_folder=r"/home/data3/ZhouJiang2/AAAAAAAAA/Gong/Q-Mamba/replay_memories_data_debug/q-transformer-"
         
         q_learner = QLearner(
         model,
@@ -86,8 +88,8 @@ def run(cfg):
         
         # path = r"/home/data3/ZhouJiang2/AAAAAAAAA/Gong/Q-Mamba/checkpoints/q-transformer/20240816_101332/checkpoint-10.pt"
         # q_learner.load(path)
-
-    #     q_learner()
+        
+        # q_learner()
 
     
     if cfg.mode == 'test' and cfg.resume == None:
@@ -109,11 +111,12 @@ def run(cfg):
         )
         
         # q_learner()
-        
-        path = r"/home/data3/ZhouJiang2/AAAAAAAAA/Gong/Q-Mamba/checkpoints/q-transformer/20240816_101332/checkpoint-10.pt"
+        import copy
+        model2 = copy.deepcopy(model)
+        path = cfg.resume
         q_learner.load(path)
         
-        rollout(cfg, model, tb_logger, testing = True)
+        rollout(cfg, model, tb_logger,model2=model2, testing = True)
 
     
     if not cfg.no_tb:

@@ -111,7 +111,7 @@ class RealEnvironment(BaseEnvironment):
         next_states = torch.tensor(next_states, device = self.device, dtype = torch.float32)
         # rewards = torch.randn((), device = self.device)
         # next_states = torch.randn(self.state_shape, device = self.device)
-        done = torch.zeros((), device = self.device, dtype = torch.bool)
+        done = torch.tensor(done, device = self.device, dtype = torch.bool)
         self.prepopulation = population
         # print("next_states", next_states.shape)
         return rewards, next_states, done

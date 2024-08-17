@@ -1,0 +1,1 @@
+python main.py  --mode='test' --model q-mamba --resume /home/data3/ZhouJiang2/AAAAAAAAA/Gong/Q-Mamba/checkpoints/q-mamba/20240817_103731/checkpoint-2.pt

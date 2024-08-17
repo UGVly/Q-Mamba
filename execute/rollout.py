@@ -56,7 +56,7 @@ def base_de(cfg,problems):
         #     print(f'offset:{p.shift}, rotate:{p.rotate}')
         ori_population=env.reset()
 
-        action = {'F': 0.5, 'Cr': 0.9, 'skip_step': 100}
+        action = {'F': 0.5, 'Cr': 0.9, "skip_step": 50}
 
         done = False
         prepopulation=ori_population
@@ -92,7 +92,7 @@ def random_de(cfg,problems):
 
         F = np.random.uniform(0, 2)
         Cr = np.random.uniform(0, 1)
-        action = {'F': F, 'Cr': Cr, 'skip_step': 100}
+        action = {'F': F, 'Cr': Cr, "skip_step": 50}
 
         done = False
         prepopulation=ori_population
@@ -133,9 +133,7 @@ def adaptive_de(cfg,model,problems):
         action = actions.cpu().numpy()[0]
         F = action[0]/255.0 * 2 # (0, 2)
         Cr = action[1]/255.0 # (0, 1)
-        
-        
-        action = {'F': F, 'Cr': Cr, 'skip_step': 100}
+        action = {'F': F, 'Cr': Cr, "skip_step": 50}
         
         done = False
         prepopulation=ori_population
@@ -146,6 +144,13 @@ def adaptive_de(cfg,model,problems):
             best_cost.append(population.gbest_cost)
             reward = get_reward(prepopulation, population)
             state = population.feature_encoding(cfg.fea_mode)
+            state = rearrange(state, 'd -> 1 d')
+            state = torch.tensor(state, device = model.device, dtype = torch.float32)
+            actions = model.get_optimal_actions(state, return_q_values=False)
+            action = actions.cpu().numpy()[0]
+            F = action[0]/255.0 * 2 # (0, 2)
+            Cr = action[1]/255.0 # (0, 1)
+            action = {'F': F, 'Cr': Cr, "skip_step": 50}
             # print(state)
             prepopulation=population
         if best_costs is None:
@@ -155,7 +160,7 @@ def adaptive_de(cfg,model,problems):
         return best_costs/len(problems)
     
 
-def rollout(cfg, model, tb_logger, testing = True):
+def rollout(cfg, model, tb_logger,model2=None, testing = True):
     """
     Rollout the model in the environment
     """
@@ -168,20 +173,33 @@ def rollout(cfg, model, tb_logger, testing = True):
         base_de_costs_mean = None
         random_de_costs_mean = None
         adaptive_de_costs_mean = None
+        model_base_de_costs_mean = None
         with tqdm(range(len(test_id)),desc='rollout') as pbar:
             for bat_id,id in enumerate(test_id):
                 # generate batch instances for testing
                 instances,p_name=sample_batch_task_id_cec21(dim=cfg.dim,batch_size=cfg.batch_size,problem_id=id,seed=999)
                 print("len(instances):",len(instances))
                 print("p_name:",p_name)
-                adaptive_de_costs = adaptive_de(cfg,model,instances)
+                
                 base_de_costs = base_de(cfg,instances)
                 random_de_costs = random_de(cfg,instances)
+                adaptive_de_costs = adaptive_de(cfg,model,instances)
+                if model2 is not None:
+                    model_base_de_costs = adaptive_de(cfg,model2,instances)
+                    
+                
+                
                 assert len(base_de_costs) == len(random_de_costs) == len(adaptive_de_costs) 
                 print("len(base_de_costs):",len(base_de_costs))
                 
                 for i in range(len(base_de_costs)):
-                    tb_logger.add_scalars(f'{p_name}', {'base_de':base_de_costs[i],
+                    if model2 is not None:
+                        tb_logger.add_scalars(f'{p_name}', {'base_de':base_de_costs[i],
+                                        'random_de':random_de_costs[i],
+                                        'adaptive_de':adaptive_de_costs[i],
+                                        'model_base_de':model_base_de_costs[i]}, i)
+                    else:    
+                        tb_logger.add_scalars(f'{p_name}', {'base_de':base_de_costs[i],
                                     'random_de':random_de_costs[i],
                                     'adaptive_de':adaptive_de_costs[i]}, i)
                 
@@ -193,9 +211,21 @@ def rollout(cfg, model, tb_logger, testing = True):
                     base_de_costs_mean = np.add(base_de_costs_mean,np.log(base_de_costs))
                     random_de_costs_mean = np.add(random_de_costs_mean,np.log(random_de_costs))
                     adaptive_de_costs_mean = np.add(adaptive_de_costs_mean,np.log(adaptive_de_costs))
+                
+                if model2 is not None:
+                    if model_base_de_costs_mean is None:
+                        model_base_de_costs_mean = np.log(model_base_de_costs)
+                    else:
+                        model_base_de_costs_mean = np.add(model_base_de_costs_mean,np.log(model_base_de_costs))
 
         for i in range(len(base_de_costs_mean)):
-            tb_logger.add_scalars(f'overall', {'base_de':base_de_costs_mean[i],
+            if model2 is not None:
+                tb_logger.add_scalars(f'overall', {'base_de':base_de_costs_mean[i],
+                            'random_de':random_de_costs_mean[i],
+                            'adaptive_de':adaptive_de_costs_mean[i],
+                            'model_base_de':model_base_de_costs_mean[i]}, i)
+            else:
+                tb_logger.add_scalars(f'overall', {'base_de':base_de_costs_mean[i],
                             'random_de':random_de_costs_mean[i],
                             'adaptive_de':adaptive_de_costs_mean[i]}, i)   
         

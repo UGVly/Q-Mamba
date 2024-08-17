@@ -1,0 +1,1 @@
+python main.py  --mode='test' --model q-transformer --resume /home/data3/ZhouJiang2/AAAAAAAAA/Gong/Q-Mamba/checkpoints/q-transformer/20240817_094910/checkpoint-2.pt
