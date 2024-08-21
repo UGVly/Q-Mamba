@@ -309,7 +309,7 @@ class QLearner(Module):
     def n_step_q_learn(
         self,
         # text_embeds:    TensorType['b', 'd', float],
-        states:         TensorType['b', 't','f', float],
+        states:         TensorType['b', 't', 'f', float],
         actions:        TensorType['b', 't', int],
         next_states:    TensorType['b', 'f', float],
         rewards:        TensorType['b', 't', float],
