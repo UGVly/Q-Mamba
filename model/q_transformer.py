@@ -601,7 +601,7 @@ class QTransformer(Module):
         cfg,
         *,
         num_actions = 8,
-        action_bins = 256,
+        action_bins = 8,
         dim_head = 9, 
         cond_drop_prob = 0.2,
         dueling = False,                       # https://arxiv.org/abs/1511.06581

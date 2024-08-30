@@ -129,12 +129,13 @@ def adaptive_de(cfg,model,problems):
         state = ori_population.feature_encoding(cfg.fea_mode)
         state = rearrange(state, 'd -> 1 d')
         state = torch.tensor(state, device = model.device, dtype = torch.float32)
-        actions = model.get_optimal_actions(state, return_q_values=False)
+        actions = model.get_optimal_actions(state, return_q_values=False, prob_random_action=0.0)
         action = actions.cpu().numpy()[0]
-        F = action[0]/255.0 * 2 # (0, 2)
-        Cr = action[1]/255.0 # (0, 1)
+        F = (action[0]/8.0  * 2+ np.random.rand())  # (0, 2)
+        Cr = action[1]/8.0 + np.random.rand()  # (0, 1)
         action = {'F': F, 'Cr': Cr, "skip_step": 50}
         
+        print("action:",action)
         done = False
         prepopulation=ori_population
         best_cost=[ori_population.gbest_cost]
@@ -146,11 +147,15 @@ def adaptive_de(cfg,model,problems):
             state = population.feature_encoding(cfg.fea_mode)
             state = rearrange(state, 'd -> 1 d')
             state = torch.tensor(state, device = model.device, dtype = torch.float32)
-            actions = model.get_optimal_actions(state, return_q_values=False)
+            actions = model.get_optimal_actions(state, return_q_values=False, prob_random_action=0.0)
             action = actions.cpu().numpy()[0]
-            F = action[0]/255.0 * 2 # (0, 2)
-            Cr = action[1]/255.0 # (0, 1)
+            print("action.shape:",action.shape)
+            print("action:",action)
+            
+            F = (action[0]/8.0  * 2+ np.random.rand())  # (0, 2)
+            Cr = action[1]/8.0 + np.random.rand()  # (0, 1)
             action = {'F': F, 'Cr': Cr, "skip_step": 50}
+            print("action:",action)
             # print(state)
             prepopulation=population
         if best_costs is None:
@@ -180,6 +185,9 @@ def rollout(cfg, model, tb_logger,model2=None, testing = True):
                 instances,p_name=sample_batch_task_id_cec21(dim=cfg.dim,batch_size=cfg.batch_size,problem_id=id,seed=999)
                 print("len(instances):",len(instances))
                 print("p_name:",p_name)
+                
+                if p_name != 'Schwefel':
+                    continue
                 
                 base_de_costs = base_de(cfg,instances)
                 random_de_costs = random_de(cfg,instances)

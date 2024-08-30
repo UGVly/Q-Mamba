@@ -408,7 +408,7 @@ class QLearner(Module):
         self,
         states:         TensorType['b', 't', 'f', float],
         actions:        TensorType['b', 't', 'n', int],
-        next_states:    TensorType['b', 'f', float],
+        next_states:    Union(TensorType['b', 'f', float], None),
         rewards:        TensorType['b', 't', float],
         dones:          TensorType['b', 't', bool],
         *,
@@ -426,14 +426,16 @@ class QLearner(Module):
         q - q values
         d - text cond dimension
         """
-        monte_carlo_return = default(monte_carlo_return, -1e4)
-        num_timesteps, device = states.shape[1], states.device
+        # monte_carlo_return = default(monte_carlo_return, -1e4)
+        batch_size, num_timesteps,fea_num, device = states.shape[0], states.shape[1],  states.shape[2],states.device
 
         # fold time steps into batch
 
         states, time_ps = pack_one(states, '* f')
         actions, _ = pack_one(actions, '* n')
 
+        # states, time_ps = pack_one(states, 'b * ')
+        # actions, _ = pack_one(actions, 'b *')
 
         # anything after the first done flag will be considered terminal
 
@@ -444,7 +446,7 @@ class QLearner(Module):
 
         # rewards should not be given on and after terminal step
 
-        rewards = rewards * not_terminal
+        # rewards = rewards * not_terminal
 
         # because greek unicode is nice to look at
 
@@ -456,21 +458,30 @@ class QLearner(Module):
         q_pred_all_actions = self.model(states, actions = actions)
         q_pred = batch_select_indices(q_pred_all_actions, actions)
         q_pred = unpack_one(q_pred, time_ps, '* n')
+        # q_pred = unpack_one(q_pred, time_ps, 'b *')
 
         # get q_next
 
-        q_next = self.ema_model(next_states)
-        q_next = q_next.max(dim = -1).values
-        q_next.clamp_(min = monte_carlo_return)
+        # q_next = self.ema_model(next_states)
+       
+        if next_states == None:
+            q_next = torch.zeros((batch_size, fea_num), device = device)
+        else:
+            q_next = self.model(next_states)
+            q_next = q_next.max(dim = -1).values
+        
+        # q_next.clamp_(min = monte_carlo_return)
 
         # get target Q
         # unpack back to - (b, t, n)
 
-        q_target_all_actions = self.ema_model(states, actions = actions)
+        # q_target_all_actions = self.ema_model(states, actions = actions)
+        q_target_all_actions = self.model(states, actions = actions)
         q_target = q_target_all_actions.max(dim = -1).values
 
-        q_target.clamp_(min = monte_carlo_return)
+        # q_target.clamp_(min = monte_carlo_return)
         q_target = unpack_one(q_target, time_ps, '* n')
+        # q_target = unpack_one(q_target, time_ps, 'b *')
 
         # main contribution of the paper is the following logic
         # section 4.1 - eq. 1
