@@ -10,6 +10,7 @@ problem_types = copy.deepcopy(functions)
 problem_types['Composition'] = Composition
 problem_types['Hybrid'] = Hybrid
 
+
 # provide an uniform interface from problem data to a problem instance object
 def get_instance(problem_data):
     name = problem_data[0]
