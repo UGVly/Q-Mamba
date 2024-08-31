@@ -497,7 +497,7 @@ class QLearner(Module):
 
         q_target_last_action, _ = pack([q_target_first_action[..., 1:], q_next], 'b *')
 
-        q_target_last_action = rewards + γ * q_target_last_action
+        q_target_last_action = rewards +  not_terminal *(γ * q_target_last_action)
 
         losses_last_action = F.mse_loss(q_pred_last_action, q_target_last_action, reduction = 'none')
 
