@@ -1,1 +1,1 @@
-python main.py --mode='train' --model q-mamba
+python main.py --mode='train' --model q-mamba --create_replay_memories 

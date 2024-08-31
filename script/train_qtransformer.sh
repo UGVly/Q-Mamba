@@ -1,1 +1,1 @@
-python main.py --mode='train' --model q-transformer 
+python main.py --mode='train' --model q-transformer --create_replay_memories

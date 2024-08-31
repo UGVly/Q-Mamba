@@ -131,8 +131,8 @@ def adaptive_de(cfg,model,problems):
         state = torch.tensor(state, device = model.device, dtype = torch.float32)
         actions = model.get_optimal_actions(state, return_q_values=False, prob_random_action=0.0)
         action = actions.cpu().numpy()[0]
-        F = (action[0]/8.0  * 2+ np.random.rand())  # (0, 2)
-        Cr = action[1]/8.0 + np.random.rand()  # (0, 1)
+        F = (action[0]/16.0  * 2+ np.random.rand())  # (0, 2)
+        Cr = action[1]/16.0 + np.random.rand()  # (0, 1)
         action = {'F': F, 'Cr': Cr, "skip_step": 50}
         
         print("action:",action)
@@ -152,8 +152,8 @@ def adaptive_de(cfg,model,problems):
             print("action.shape:",action.shape)
             print("action:",action)
             
-            F = (action[0]/8.0  * 2+ np.random.rand())  # (0, 2)
-            Cr = action[1]/8.0 + np.random.rand()  # (0, 1)
+            F = (action[0]/16.0  * 2+ np.random.rand())  # (0, 2)
+            Cr = action[1]/16.0 + np.random.rand()  # (0, 1)
             action = {'F': F, 'Cr': Cr, "skip_step": 50}
             print("action:",action)
             # print(state)
@@ -186,8 +186,8 @@ def rollout(cfg, model, tb_logger,model2=None, testing = True):
                 print("len(instances):",len(instances))
                 print("p_name:",p_name)
                 
-                if p_name != 'Schwefel':
-                    continue
+                # if p_name != 'Schwefel':
+                #     continue
                 
                 base_de_costs = base_de(cfg,instances)
                 random_de_costs = random_de(cfg,instances)

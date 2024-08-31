@@ -408,9 +408,9 @@ class QLearner(Module):
         self,
         states:         TensorType['b', 't', 'f', float],
         actions:        TensorType['b', 't', 'n', int],
-        next_states:    Union(TensorType['b', 'f', float], None),
-        rewards:        TensorType['b', 't', float],
-        dones:          TensorType['b', 't', bool],
+        next_states:    TensorType['b', 'f', float] = None,
+        rewards:        TensorType['b', 't', float] = None,
+        dones:          TensorType['b', 't', bool] = None,
         *,
         monte_carlo_return = None
 

@@ -108,10 +108,11 @@ class RealEnvironment(BaseEnvironment):
         TensorType[(), bool]
     ]:
         action = actions.cpu().numpy()[0]
-        F = (action[0]/8.0 * 2 + np.random.rand())  # (0, 2)
-        Cr = action[1]/8.0 + np.random.rand()  # (0, 1)
-        action = {'F': F, 'Cr': Cr, 'skip_step': 50}
-        print("##action: ", action)
+        F = (action[0]/self.cfg.action_bins * 2 + np.random.rand())  # (0, 2)
+        Cr = action[1]/self.cfg.action_bins + np.random.rand()  # (0, 1)
+        action = {'F': F, 'Cr': Cr, "fes":1000}
+        # action = {'F': F, 'Cr': Cr, 'skip_step': 50}
+        # print("##action: ", action)
 
         population, _, done, _ = self.env.step(action)
         rewards = self.get_reward(self.prepopulation, population)

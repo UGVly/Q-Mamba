@@ -223,6 +223,7 @@ class QHeadMultipleActions(Module):
         num_actions=2,
         action_bins=16,
         use_binary_encode = True,
+        device = 'cuda',
         # dueling=False,
         # weight_tie_action_bin_embed=False
     ):
@@ -231,7 +232,7 @@ class QHeadMultipleActions(Module):
         self.action_bins = action_bins
         self.action_dim = action_dim
         self.use_binary_encode = use_binary_encode
-        
+        self.device = device
         if use_binary_encode:
             assert action_bins + 1 <= 2**action_dim
         else:
@@ -243,7 +244,8 @@ class QHeadMultipleActions(Module):
         # if not weight_tie_action_bin_embed:
         #     self.to_q_values = nn.Linear(state_dim + action_dim, action_bins)
 
-        self.DAC_block = DAC_block(state_dim,action_dim,action_bins)
+        # print('DAC_block:',device)
+        self.DAC_block = DAC_block(state_dim,action_dim,action_bins,device=device).to(device)
 
         # self.final_norm = RMSNorm(dim)
 
@@ -342,7 +344,7 @@ class QHeadMultipleActions(Module):
         # print('tokens:', tokens.shape)
         action_bins = []
 
-        print("numactions:", self.num_actions)
+        # print("numactions:", self.num_actions)
         for action_idx in range(self.num_actions):
 
             # if tokens.is_cuda:
@@ -355,21 +357,24 @@ class QHeadMultipleActions(Module):
             # else:
             #     print("Model 'mamba' is on CPU")
 
-            # device = tokens.device
-            # tokens = tokens.to("cuda")
+            device = tokens.device
+            tokens = tokens.to("cuda")
             # embed = self.mamba(tokens)
             # embed = embed.to(device)
             # tokens = tokens.to(device)
-
+            
             q_values = self.DAC_block(tokens)
             # print('embed:', embed.shape)
             # print("cache:", cache.shape)
+            q_values = q_values.to(device)
+            tokens = tokens.to(device)
 
             # last_embed = q_values[:, action_idx]
             # bin_embeddings = self.action_bin_embeddings[action_idx]
 
             # q_values = einsum('b d, a d -> b a', last_embed, bin_embeddings)
 
+            # print('q_values--:', q_values.shape[-1])
             selected_action_bins = q_values.argmax(dim=-1)
 
             # if prob_random_action > 0.:
@@ -387,12 +392,12 @@ class QHeadMultipleActions(Module):
             # next_action_embed = bin_embeddings[selected_action_bins]
             
             next_action_embed = int_to_binary_float_tensor(selected_action_bins, self.action_dim)[:,-1,]
-            print('selected_action_bins:', selected_action_bins.shape)
-            print('next_action_embed:', next_action_embed.shape)
+            # print('selected_action_bins:', selected_action_bins.shape)
+            # print('next_action_embed:', next_action_embed.shape)
             next_token, _ = pack((sos_token, next_action_embed), 'b *')
             next_token = rearrange(next_token, 'b d -> b 1 d')
-            print('next_token:', next_token.shape)
-            print('tokens:', tokens.shape)
+            # print('next_token:', next_token.shape)
+            # print('tokens:', tokens.shape)
             tokens, _ = pack((tokens, next_token), 'b * d')
 
             # action_bins.append(selected_action_bins)
@@ -456,7 +461,7 @@ class QMamba(Module):
         *,
         state_dim=9,
         action_dim=5,
-        num_actions=8,
+        num_actions=2,
         action_bins=16,
         use_binary_encode = True,
         # dim_head=9,
@@ -470,15 +475,22 @@ class QMamba(Module):
         super().__init__()
 
         self.device = device
+        self.cfg = cfg
+        
+        
         # q-transformer related action embeddings
 
         assert num_actions >= 1
 
         if cfg.num_actions != None:
             num_actions = cfg.num_actions
-        self.num_actions = num_actions
+        self.num_actions = cfg.num_actions
         self.is_single_action = num_actions == 1
-        self.action_bins = action_bins
+        self.num_actions = cfg.num_actions
+        self.action_bins = cfg.action_bins
+        self.action_dim = cfg.action_dim
+        self.state_dim = cfg.state_dim
+        
 
         # self.cond_drop_prob = cond_drop_prob
 
@@ -493,10 +505,10 @@ class QMamba(Module):
         #     )
         # else:
         self.q_head = QHeadMultipleActions(
-            state_dim=state_dim,
-            action_dim=action_dim,
-            num_actions=num_actions,
-            action_bins=action_bins,
+            state_dim=self.state_dim,
+            action_dim=self.action_dim,
+            num_actions=self.num_actions,
+            action_bins=self.action_bins,
             use_binary_encode = use_binary_encode,
         )
 
